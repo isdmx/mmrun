@@ -79,8 +79,10 @@ func resolveUsernames(ctx context.Context, app *appContext, posts []*model.Post)
 	return out
 }
 
-// channelLabel returns a human name for a channel ID, caching lookups. It falls
-// back to the raw ID when the channel cannot be resolved.
+// channelLabel returns a human name for a channel ID, caching lookups. Direct
+// messages resolve to the peer's @username (or "you" for a self-DM); other
+// channels use their display name or name; unresolved IDs fall back to the raw
+// ID.
 func channelLabel(ctx context.Context, app *appContext, id string, cache map[string]string) string {
 	if id == "" {
 		return ""
@@ -90,15 +92,40 @@ func channelLabel(ctx context.Context, app *appContext, id string, cache map[str
 	}
 	label := id
 	if ch, err := app.api.Channel(ctx, id); err == nil && ch != nil {
-		switch {
-		case ch.DisplayName != "":
-			label = ch.DisplayName
-		case ch.Name != "":
-			label = ch.Name
+		if ch.Type == model.ChannelTypeDirect {
+			label = directLabel(ctx, app, ch)
+		} else {
+			switch {
+			case ch.DisplayName != "":
+				label = ch.DisplayName
+			case ch.Name != "":
+				label = ch.Name
+			}
 		}
 	}
 	cache[id] = label
 	return label
+}
+
+// directLabel resolves a direct-message channel to "@peer" or "you" (self-DM).
+func directLabel(ctx context.Context, app *appContext, ch *model.Channel) string {
+	var peer string
+	for _, part := range strings.Split(ch.Name, "__") {
+		if part != app.userID {
+			peer = part
+		}
+	}
+	if peer == "" { // self-DM (u1__u1)
+		return "you"
+	}
+	if users, err := app.api.UsersByIDs(ctx, []string{peer}); err == nil {
+		for _, u := range users {
+			if u.Id == peer {
+				return "@" + u.Username
+			}
+		}
+	}
+	return ch.Name
 }
 
 // preview collapses all runs of whitespace (including newlines and tabs) into

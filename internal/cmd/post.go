@@ -52,5 +52,5 @@ func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Wr
 		return err
 	}
 	res := output.Result{Text: created.Id}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }

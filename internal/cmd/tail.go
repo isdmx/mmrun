@@ -67,7 +67,7 @@ func runTail(ctx context.Context, app *appContext, channelRef, team string, w io
 	if err != nil {
 		return err
 	}
-	r := output.New(app.outputMode, stdoutFile(w))
+	r := output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Color: app.color})
 	for {
 		select {
 		case ev, ok := <-events:

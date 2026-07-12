@@ -7,8 +7,6 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
-
-	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newSearchCmd(outputMode *string) *cobra.Command {
@@ -42,7 +40,7 @@ func runSearch(app *appContext, query, teamName string, full bool, w io.Writer) 
 		return err
 	}
 	res := renderMessages(ctx, app, "Search results", postsInOrder(pl), resolvedTeam, full)
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }
 
 // postsInOrder returns the posts of a PostList in the server-provided Order

@@ -63,7 +63,7 @@ func runMe(app *appContext, profile bool, w io.Writer) error {
 			output.Row{"field": "id", "value": u.Id},
 		)
 	}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }
 
 // joinNonEmpty joins the non-empty parts with a single space.

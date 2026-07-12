@@ -9,8 +9,6 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
-
-	"github.com/isdmx/mmrun/internal/output"
 )
 
 type readOpts struct {
@@ -88,7 +86,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	}
 
 	res := renderMessages(ctx, app, title, chronological(pl), permalinkTeam, opts.full)
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }
 
 // permalinkTeamFor returns the team name usable in a permalink for a channel,

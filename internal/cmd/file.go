@@ -10,7 +10,6 @@ import (
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
 
-	"github.com/isdmx/mmrun/internal/config"
 	"github.com/isdmx/mmrun/internal/output"
 )
 
@@ -29,7 +28,7 @@ func newFileCmd(outputMode *string) *cobra.Command {
 			}
 			dir := outDir
 			if dir == "" {
-				dir = config.Paths().DownloadDir
+				dir = app.downloadDir
 			}
 			paths, err := runFileDownload(app, args[0], dir)
 			if err != nil {
@@ -39,7 +38,7 @@ func newFileCmd(outputMode *string) *cobra.Command {
 			for _, p := range paths {
 				res.Rows = append(res.Rows, output.Row{"path": p})
 			}
-			return output.New(app.outputMode, stdoutFile(cmd.OutOrStdout())).Render(cmd.OutOrStdout(), res)
+			return app.render(cmd.OutOrStdout(), res)
 		},
 	}
 	download.Flags().StringVar(&outDir, "out", "", "output directory (defaults to XDG download dir)")
@@ -125,7 +124,7 @@ func runFileUpload(app *appContext, channelRef string, paths []string, message, 
 	if err != nil {
 		return err
 	}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, output.Result{Text: created.Id})
+	return app.render(w, output.Result{Text: created.Id})
 }
 
 // uploadFiles uploads each path to the channel and returns the resulting file

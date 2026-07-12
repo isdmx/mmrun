@@ -111,5 +111,5 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 			res.Rows = append(res.Rows, row)
 		}
 	}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }
