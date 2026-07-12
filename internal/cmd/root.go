@@ -23,6 +23,8 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().BoolVarP(&opts.verbose, "verbose", "v", false, "verbose logging")
 	root.AddCommand(newMeCmd(&opts.outputMode))
 	root.AddCommand(newAuthCmd(&opts.outputMode))
+	root.AddCommand(newTeamCmd(&opts.outputMode))
+	root.AddCommand(newChannelCmd(&opts.outputMode))
 	return root
 }
 
