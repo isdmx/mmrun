@@ -22,6 +22,7 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().StringVar(&opts.configPath, "config", "", "path to config file")
 	root.PersistentFlags().BoolVarP(&opts.verbose, "verbose", "v", false, "verbose logging")
 	root.AddCommand(newMeCmd(&opts.outputMode))
+	root.AddCommand(newAuthCmd(&opts.outputMode))
 	return root
 }
 
