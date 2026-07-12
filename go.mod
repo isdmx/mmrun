@@ -1,4 +1,4 @@
-module github.com/dmitriev/mmrun
+module github.com/isdmx/mmrun
 
 go 1.26.5
 

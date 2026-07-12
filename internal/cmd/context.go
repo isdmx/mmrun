@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dmitriev/mmrun/internal/client"
-	"github.com/dmitriev/mmrun/internal/config"
-	"github.com/dmitriev/mmrun/internal/session"
+	"github.com/isdmx/mmrun/internal/client"
+	"github.com/isdmx/mmrun/internal/config"
+	"github.com/isdmx/mmrun/internal/session"
 	"github.com/mattermost/mattermost/server/public/model"
 )
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dmitriev/mmrun/internal/session"
+	"github.com/isdmx/mmrun/internal/session"
 	"github.com/mattermost/mattermost/server/public/model"
 )
 

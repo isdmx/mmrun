@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dmitriev/mmrun/internal/client"
-	"github.com/dmitriev/mmrun/internal/config"
-	"github.com/dmitriev/mmrun/internal/output"
-	"github.com/dmitriev/mmrun/internal/session"
+	"github.com/isdmx/mmrun/internal/client"
+	"github.com/isdmx/mmrun/internal/config"
+	"github.com/isdmx/mmrun/internal/output"
+	"github.com/isdmx/mmrun/internal/session"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/dmitriev/mmrun/internal/client"
+	"github.com/isdmx/mmrun/internal/client"
 )
 
 func TestAppContext_UsesFake(t *testing.T) {

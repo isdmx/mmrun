@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dmitriev/mmrun/internal/config"
+	"github.com/isdmx/mmrun/internal/config"
 )
 
 // ErrNoSession indicates no session file exists yet.

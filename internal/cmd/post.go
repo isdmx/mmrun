@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dmitriev/mmrun/internal/output"
+	"github.com/isdmx/mmrun/internal/output"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
 )

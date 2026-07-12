@@ -3,8 +3,8 @@ package cmd
 import (
 	"errors"
 
-	"github.com/dmitriev/mmrun/internal/client"
-	"github.com/dmitriev/mmrun/internal/session"
+	"github.com/isdmx/mmrun/internal/client"
+	"github.com/isdmx/mmrun/internal/session"
 )
 
 // ExitCode maps an error to a process exit code.

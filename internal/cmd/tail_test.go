@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmitriev/mmrun/internal/client"
+	"github.com/isdmx/mmrun/internal/client"
 	"github.com/mattermost/mattermost/server/public/model"
 )
 

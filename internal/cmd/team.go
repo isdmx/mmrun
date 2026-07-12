@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/dmitriev/mmrun/internal/output"
+	"github.com/isdmx/mmrun/internal/output"
 	"github.com/spf13/cobra"
 )
 
