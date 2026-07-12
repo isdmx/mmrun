@@ -9,17 +9,24 @@ import (
 )
 
 func newTeamCmd(outputMode *string) *cobra.Command {
-	team := &cobra.Command{Use: "team", Short: "Team operations"}
+	run := func(cmd *cobra.Command, args []string) error {
+		app, err := requireSession(*outputMode)
+		if err != nil {
+			return err
+		}
+		return runTeamList(app, cmd.OutOrStdout())
+	}
+	team := &cobra.Command{
+		Use:   "team",
+		Short: "List teams you belong to",
+		Args:  cobra.NoArgs,
+		RunE:  run,
+	}
 	team.AddCommand(&cobra.Command{
 		Use:   "list",
 		Short: "List teams you belong to",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := requireSession(*outputMode)
-			if err != nil {
-				return err
-			}
-			return runTeamList(app, cmd.OutOrStdout())
-		},
+		Args:  cobra.NoArgs,
+		RunE:  run,
 	})
 	return team
 }

@@ -11,22 +11,20 @@ import (
 )
 
 func newChannelCmd(outputMode *string) *cobra.Command {
-	channel := &cobra.Command{Use: "channel", Short: "Channel operations"}
+	channel := &cobra.Command{
+		Use:   "channel",
+		Short: "List and search channels",
+		Args:  cobra.NoArgs,
+	}
+	// Bare `channel` (and `channel list`) list channels.
+	addChannelListRun(channel, outputMode)
 
-	var listTeam, listType string
 	list := &cobra.Command{
 		Use:   "list",
 		Short: "List channels you belong to (direct messages hidden by default)",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := requireSession(*outputMode)
-			if err != nil {
-				return err
-			}
-			return runChannelList(app, listTeam, listType, cmd.OutOrStdout())
-		},
+		Args:  cobra.NoArgs,
 	}
-	list.Flags().StringVar(&listTeam, "team", "", "team name (defaults to your team if you have only one)")
-	list.Flags().StringVar(&listType, "type", "default", "filter: default|public|private|dm|group|all")
+	addChannelListRun(list, outputMode)
 
 	var searchTeam string
 	search := &cobra.Command{
@@ -45,6 +43,22 @@ func newChannelCmd(outputMode *string) *cobra.Command {
 
 	channel.AddCommand(list, search)
 	return channel
+}
+
+// addChannelListRun wires a command to run the channel-list action with --team
+// and --type flags. It is used for both the bare `channel` command and its
+// explicit `list` subcommand.
+func addChannelListRun(cmd *cobra.Command, outputMode *string) {
+	var team, chType string
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		app, err := requireSession(*outputMode)
+		if err != nil {
+			return err
+		}
+		return runChannelList(app, team, chType, cmd.OutOrStdout())
+	}
+	cmd.Flags().StringVar(&team, "team", "", "team name (defaults to your team if you have only one)")
+	cmd.Flags().StringVar(&chType, "type", "default", "filter: default|public|private|dm|group|all")
 }
 
 func runChannelList(app *appContext, teamName, chType string, w io.Writer) error {
