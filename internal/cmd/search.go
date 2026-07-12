@@ -57,16 +57,18 @@ func runSearch(app *appContext, query, teamName string, w io.Writer) error {
 		return err
 	}
 	res := output.Result{Title: "Search results", Columns: []string{"time", "user_id", "message"}}
-	for _, id := range pl.Order {
-		p := pl.Posts[id]
-		if p == nil {
-			continue
+	if pl != nil {
+		for _, id := range pl.Order {
+			p := pl.Posts[id]
+			if p == nil {
+				continue
+			}
+			res.Rows = append(res.Rows, output.Row{
+				"time":    time.UnixMilli(p.CreateAt).Format(time.RFC3339),
+				"user_id": p.UserId,
+				"message": p.Message,
+			})
 		}
-		res.Rows = append(res.Rows, output.Row{
-			"time":    time.UnixMilli(p.CreateAt).Format(time.RFC3339),
-			"user_id": p.UserId,
-			"message": p.Message,
-		})
 	}
 	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
 }

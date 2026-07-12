@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"errors"
-	"strings"
 
+	"github.com/dmitriev/mmrun/internal/client"
 	"github.com/dmitriev/mmrun/internal/session"
 )
 
@@ -17,13 +17,11 @@ func ExitCode(err error) int {
 	if errors.Is(err, session.ErrNoSession) {
 		return 2
 	}
-	msg := strings.ToLower(err.Error())
-	switch {
-	case strings.Contains(msg, "unauthorized"), strings.Contains(msg, "session"), strings.Contains(msg, "token"):
+	switch client.StatusCode(err) {
+	case 401, 403:
 		return 2
-	case strings.Contains(msg, "not found"), strings.Contains(msg, "404"):
+	case 404:
 		return 3
-	default:
-		return 1
 	}
+	return 1
 }

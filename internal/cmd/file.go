@@ -18,8 +18,8 @@ func newFileCmd(outputMode *string) *cobra.Command {
 
 	var outDir string
 	download := &cobra.Command{
-		Use:   "download <post-id>",
-		Short: "Download all attachments of a post",
+		Use:   "download <post-or-file-id>",
+		Short: "Download attachments of a post, or a single file by its ID",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
@@ -62,11 +62,14 @@ func newFileCmd(outputMode *string) *cobra.Command {
 	return file
 }
 
-func runFileDownload(app *appContext, postID, dir string) ([]string, error) {
+func runFileDownload(app *appContext, id, dir string) ([]string, error) {
 	ctx := context.Background()
-	infos, err := app.api.FileInfosForPost(ctx, postID)
+	infos, err := fileInfosFor(ctx, app, id)
 	if err != nil {
 		return nil, err
+	}
+	if len(infos) == 0 {
+		return nil, fmt.Errorf("%q has no downloadable files (not a post with attachments or a file ID)", id)
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
@@ -83,15 +86,30 @@ func runFileDownload(app *appContext, postID, dir string) ([]string, error) {
 		}
 		written = append(written, dest)
 	}
-	if len(written) == 0 {
-		return nil, fmt.Errorf("post %s has no file attachments", postID)
-	}
 	return written, nil
+}
+
+// fileInfosFor resolves an argument that may be either a post ID (returning its
+// attachments) or a single file ID (returning that one file's info).
+func fileInfosFor(ctx context.Context, app *appContext, id string) ([]*model.FileInfo, error) {
+	infos, err := app.api.FileInfosForPost(ctx, id)
+	if err == nil && len(infos) > 0 {
+		return infos, nil
+	}
+	// Fall back to treating the argument as a file ID.
+	if fi, ferr := app.api.FileInfo(ctx, id); ferr == nil && fi != nil {
+		return []*model.FileInfo{fi}, nil
+	}
+	// No file match: surface the original post-lookup error if there was one.
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func runFileUpload(app *appContext, channelRef, path, message string, w io.Writer) error {
 	ctx := context.Background()
-	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam)
+	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam, app.userID)
 	if err != nil {
 		return err
 	}

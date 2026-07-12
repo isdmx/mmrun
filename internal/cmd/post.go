@@ -37,7 +37,7 @@ func newPostCmd(outputMode *string) *cobra.Command {
 
 func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Writer) error {
 	ctx := context.Background()
-	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam)
+	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam, app.userID)
 	if err != nil {
 		return err
 	}

@@ -3,11 +3,11 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"io"
 	"os"
+	"os/signal"
 	"time"
 
-	"github.com/dmitriev/mmrun/internal/client"
 	"github.com/dmitriev/mmrun/internal/output"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
@@ -23,7 +23,9 @@ func newTailCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runTail(app, args[0])
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+			defer stop()
+			return runTail(ctx, app, args[0], cmd.OutOrStdout())
 		},
 	}
 }
@@ -52,29 +54,27 @@ func postedEventToRow(channelID, event string, data map[string]any) (output.Row,
 	}, true
 }
 
-func runTail(app *appContext, channelRef string) error {
-	ctx := context.Background()
-	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam)
+func runTail(ctx context.Context, app *appContext, channelRef string, w io.Writer) error {
+	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam, app.userID)
 	if err != nil {
 		return err
 	}
-	c, ok := app.api.(*client.Client)
-	if !ok {
-		return fmt.Errorf("tail requires a live client")
-	}
-	events, errs, err := c.StreamPosts(ctx)
+	events, errs, err := app.api.StreamPosts(ctx)
 	if err != nil {
 		return err
 	}
-	r := output.New(app.outputMode, os.Stdout)
+	r := output.New(app.outputMode, stdoutFile(w))
 	for {
 		select {
-		case ev := <-events:
+		case ev, ok := <-events:
+			if !ok {
+				return nil
+			}
 			row, ok := postedEventToRow(ch.Id, ev.Event, ev.Data)
 			if !ok {
 				continue
 			}
-			_ = r.Render(os.Stdout, output.Result{Columns: []string{"time", "user_id", "message"}, Rows: []output.Row{row}})
+			_ = r.Render(w, output.Result{Columns: []string{"time", "user_id", "message"}, Rows: []output.Row{row}})
 		case err := <-errs:
 			return err
 		case <-ctx.Done():

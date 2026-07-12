@@ -7,9 +7,11 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/dmitriev/mmrun/internal/client"
 	"github.com/dmitriev/mmrun/internal/config"
+	"github.com/dmitriev/mmrun/internal/output"
 	"github.com/dmitriev/mmrun/internal/session"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -19,7 +21,7 @@ func newAuthCmd(outputMode *string) *cobra.Command {
 	auth := &cobra.Command{Use: "auth", Short: "Manage authentication"}
 	auth.AddCommand(newLoginCmd())
 	auth.AddCommand(newLogoutCmd())
-	auth.AddCommand(newAuthStatusCmd())
+	auth.AddCommand(newAuthStatusCmd(outputMode))
 	return auth
 }
 
@@ -131,15 +133,15 @@ func newLogoutCmd() *cobra.Command {
 				return err
 			}
 			c := client.NewWithToken(sess.ServerURL, sess.Token)
-			if sess.SessionID != "" {
-				_ = c.RevokeSession(context.Background(), sess.UserID, sess.SessionID)
+			if lerr := c.Logout(context.Background()); lerr != nil {
+				fmt.Fprintf(os.Stderr, "warning: server-side logout failed: %v\n", lerr)
 			}
 			return session.Clear()
 		},
 	}
 }
 
-func newAuthStatusCmd() *cobra.Command {
+func newAuthStatusCmd(outputMode *string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show current session status",
@@ -148,8 +150,26 @@ func newAuthStatusCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "server: %s\nuser_id: %s\n", sess.ServerURL, sess.UserID)
-			return nil
+			c := client.NewWithToken(sess.ServerURL, sess.Token)
+			username := ""
+			if u, uerr := c.Me(context.Background()); uerr == nil && u != nil {
+				username = u.Username
+			}
+			expires := ""
+			if !sess.ExpiresAt.IsZero() {
+				expires = sess.ExpiresAt.Format(time.RFC3339)
+			}
+			res := output.Result{
+				Title:   "Session",
+				Columns: []string{"field", "value"},
+				Rows: []output.Row{
+					{"field": "server", "value": sess.ServerURL},
+					{"field": "username", "value": username},
+					{"field": "user_id", "value": sess.UserID},
+					{"field": "expires", "value": expires},
+				},
+			}
+			return output.New(*outputMode, stdoutFile(cmd.OutOrStdout())).Render(cmd.OutOrStdout(), res)
 		},
 	}
 }
