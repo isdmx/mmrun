@@ -1,0 +1,190 @@
+package config
+
+import (
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+type setting struct {
+	key         string
+	description string
+	def         string
+	validate    func(string) error
+	get         func(*Config) string
+	set         func(*Config, string) error
+}
+
+func enumValidator(allowed ...string) func(string) error {
+	return func(v string) error {
+		if v == "" {
+			return nil
+		}
+		for _, a := range allowed {
+			if v == a {
+				return nil
+			}
+		}
+		return fmt.Errorf("must be one of: %s", strings.Join(allowed, ", "))
+	}
+}
+
+func posIntValidator(v string) error {
+	if v == "" {
+		return nil
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return fmt.Errorf("must be an integer")
+	}
+	if n < 1 {
+		return fmt.Errorf("must be >= 1")
+	}
+	return nil
+}
+
+func setInt(target *int) func(*Config, string) error {
+	return func(_ *Config, v string) error {
+		if v == "" {
+			*target = 0
+			return nil
+		}
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return fmt.Errorf("must be an integer")
+		}
+		*target = n
+		return nil
+	}
+}
+
+// settingsFor returns the settings bound to a specific Config pointer.
+func settingsFor(c *Config) map[string]setting {
+	return map[string]setting{
+		"server_url": {
+			key: "server_url", description: "Mattermost server URL", def: "",
+			validate: func(string) error { return nil },
+			get:      func(c *Config) string { return c.ServerURL },
+			set:      func(c *Config, v string) error { c.ServerURL = v; return nil },
+		},
+		"default_team": {
+			key: "default_team", description: "team used for bare channel names", def: "",
+			validate: func(string) error { return nil },
+			get:      func(c *Config) string { return c.DefaultTeam },
+			set:      func(c *Config, v string) error { c.DefaultTeam = v; return nil },
+		},
+		"output_mode": {
+			key: "output_mode", description: "output mode: auto|human|ai|json", def: "auto",
+			validate: enumValidator("auto", "human", "ai", "json"),
+			get:      func(c *Config) string { return c.OutputMode },
+			set:      func(c *Config, v string) error { c.OutputMode = v; return nil },
+		},
+		"default_limit": {
+			key: "default_limit", description: "default message page size", def: "50",
+			validate: posIntValidator,
+			get:      func(c *Config) string { return strconv.Itoa(c.DefaultLimit()) },
+			set:      setInt(&c.DefaultLimit_),
+		},
+		"preview_len": {
+			key: "preview_len", description: "message preview length (runes)", def: "140",
+			validate: posIntValidator,
+			get:      func(c *Config) string { return strconv.Itoa(c.PreviewLen()) },
+			set:      setInt(&c.PreviewLen_),
+		},
+		"color": {
+			key: "color", description: "colorized output: auto|always|never", def: "auto",
+			validate: enumValidator("auto", "always", "never"),
+			get:      func(c *Config) string { return c.Color() },
+			set:      func(c *Config, v string) error { c.ColorMode = v; return nil },
+		},
+		"download_dir": {
+			key: "download_dir", description: "download directory (blank = XDG default)", def: "",
+			validate: func(string) error { return nil },
+			get:      func(c *Config) string { return c.DownloadDir_ },
+			set:      func(c *Config, v string) error { c.DownloadDir_ = v; return nil },
+		},
+		"columns": {
+			key: "columns", description: "default columns for read/search (e.g. -permalink)", def: "",
+			validate: validateColumnsSpec,
+			get:      func(c *Config) string { return c.Columns },
+			set:      func(c *Config, v string) error { c.Columns = v; return nil },
+		},
+	}
+}
+
+// MessageColumns lists the column names valid for read/search output. It lives
+// here so config can validate the columns preference without importing cmd.
+var MessageColumns = []string{"time", "channel", "user", "files", "root_id", "post_id", "permalink", "message"}
+
+func validateColumnsSpec(v string) error {
+	if v == "" {
+		return nil
+	}
+	valid := map[string]bool{}
+	for _, c := range MessageColumns {
+		valid[c] = true
+	}
+	for _, tok := range strings.Split(v, ",") {
+		tok = strings.TrimSpace(tok)
+		name := strings.TrimLeft(tok, "+-")
+		if name == "" || !valid[name] {
+			return fmt.Errorf("unknown column %q (valid: %s)", name, strings.Join(MessageColumns, ", "))
+		}
+	}
+	return nil
+}
+
+// Keys returns all known setting keys, sorted.
+func Keys() []string {
+	m := settingsFor(&Config{})
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// Get returns the effective value of a key.
+func Get(c *Config, key string) (string, error) {
+	s, ok := settingsFor(c)[key]
+	if !ok {
+		return "", fmt.Errorf("unknown key %q (valid: %s)", key, strings.Join(Keys(), ", "))
+	}
+	return s.get(c), nil
+}
+
+// Set validates and applies a key's value on the Config.
+func Set(c *Config, key, value string) error {
+	s, ok := settingsFor(c)[key]
+	if !ok {
+		return fmt.Errorf("unknown key %q (valid: %s)", key, strings.Join(Keys(), ", "))
+	}
+	if err := s.validate(value); err != nil {
+		return fmt.Errorf("invalid value for %q: %w", key, err)
+	}
+	return s.set(c, value)
+}
+
+// Describe returns the description and default for a key.
+func Describe(key string) (desc, def string, ok bool) {
+	s, found := settingsFor(&Config{})[key]
+	if !found {
+		return "", "", false
+	}
+	return s.description, s.def, true
+}
+
+// Template renders a fully-commented config.toml with default values.
+func Template() string {
+	var b strings.Builder
+	b.WriteString("# mmrun configuration\n")
+	b.WriteString("# Generated defaults; edit as needed. See 'mmrun config list'.\n\n")
+	for _, key := range Keys() {
+		desc, def, _ := Describe(key)
+		fmt.Fprintf(&b, "# %s\n", desc)
+		fmt.Fprintf(&b, "%s = %q\n\n", key, def)
+	}
+	return b.String()
+}
