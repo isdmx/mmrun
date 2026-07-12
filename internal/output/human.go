@@ -7,12 +7,29 @@ import (
 	"text/tabwriter"
 )
 
-type humanRenderer struct{ color bool }
+type humanRenderer struct {
+	color     bool
+	highlight []string
+}
 
 const (
-	ansiBold  = "\x1b[1m"
-	ansiReset = "\x1b[0m"
+	ansiBold      = "\x1b[1m"
+	ansiHighlight = "\x1b[33m" // yellow
+	ansiReset     = "\x1b[0m"
 )
+
+func (h humanRenderer) emphasize(s string) string {
+	if !h.color || len(h.highlight) == 0 {
+		return s
+	}
+	for _, term := range h.highlight {
+		if term == "" {
+			continue
+		}
+		s = strings.ReplaceAll(s, term, ansiHighlight+term+ansiReset)
+	}
+	return s
+}
 
 func (h humanRenderer) Render(w io.Writer, r Result) error {
 	if r.Text != "" {
@@ -35,7 +52,7 @@ func (h humanRenderer) Render(w io.Writer, r Result) error {
 	for _, row := range r.Rows {
 		cells := make([]string, 0, len(r.Columns))
 		for _, c := range r.Columns {
-			cells = append(cells, row[c])
+			cells = append(cells, h.emphasize(row[c]))
 		}
 		if _, err := fmt.Fprintln(tw, strings.Join(cells, "\t")); err != nil {
 			return err

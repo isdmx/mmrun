@@ -82,6 +82,7 @@ func newLoginCmd() *cobra.Command {
 				ServerURL: serverURL,
 				Token:     c.Token(),
 				UserID:    u.Id,
+				Username:  u.Username,
 			}); err != nil {
 				return err
 			}

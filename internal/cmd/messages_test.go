@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 
@@ -23,6 +24,7 @@ func TestRead_IncludesActionableColumns(t *testing.T) {
 			posts:    pl,
 		},
 		outputMode: "ai",
+		previewLen: 140,
 	}
 	var buf bytes.Buffer
 	if err := runRead(app, "eng/general", readOpts{limit: 50}, &buf); err != nil {
@@ -68,5 +70,27 @@ func TestFileSummary(t *testing.T) {
 	}
 	if got := fileSummary(withMeta); got != "2: one.txt, two.pdf" {
 		t.Errorf("with names = %q, want %q", got, "2: one.txt, two.pdf")
+	}
+}
+
+func TestChannelLabel_DirectMessage(t *testing.T) {
+	app := &appContext{
+		api:    &fakeAPI{resolved: &model.Channel{Id: "d1", Name: "u1__u2", Type: model.ChannelTypeDirect}, users: []*model.User{{Id: "u2", Username: "bob"}}},
+		userID: "u1",
+	}
+	got := channelLabel(context.Background(), app, "d1", map[string]string{})
+	if got != "@bob" {
+		t.Errorf("DM label = %q, want @bob", got)
+	}
+}
+
+func TestChannelLabel_SelfDM(t *testing.T) {
+	app := &appContext{
+		api:    &fakeAPI{resolved: &model.Channel{Id: "d1", Name: "u1__u1", Type: model.ChannelTypeDirect}},
+		userID: "u1",
+	}
+	got := channelLabel(context.Background(), app, "d1", map[string]string{})
+	if got != "you" {
+		t.Errorf("self-DM label = %q, want you", got)
 	}
 }

@@ -66,18 +66,27 @@ mmrun tail incidents
 | `channel` / `channel list` | List channels (`--type public\|private\|dm\|group\|all`) |
 | `channel search <term>` | Find channels by name, including ones you have not joined |
 | `user search <term>` | Find users by name/username |
-| `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--full`) |
-| `post <channel> <msg>` | Post a message (`--reply-to <id>`, `--file <path>`) |
+| `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--full`, `--columns`) |
+| `post <channel> <msg>` | Post a message (`--reply-to <id>`, repeatable `--file <path>`, `--dry-run`) |
 | `tail <channel>` | Stream new messages live until interrupted |
-| `search <query>` | Server-side message search (`--team`, `--full`) |
-| `thread` / `thread list` | List followed threads (`--unread`, `--limit`) |
+| `search <query>` | Server-side message search (`--team`, `--full`, `--columns`) |
+| `thread` / `thread list` | List followed threads (`--unread`, `--limit`, `--columns`) |
 | `file download <id>` | Download a post's attachments or a single file (`--out <dir>`) |
-| `file upload <channel> <path>` | Upload a file with an optional `--message` |
+| `file upload <channel> <path>...` | Upload one or more files (`--message`, `--dry-run`) |
+| `config` | View/edit configuration (`path`, `list`, `get`, `set`, `generate`) |
 | `version` / `--version` | Print version, commit, and build date |
 
 **Channel references** accept several forms: a bare name (`python`, resolved
 against your team), `team/channel`, `@username` for a DM, or a raw channel ID.
 Channel-taking commands also accept `--team` to qualify a bare name.
+
+**Columns** — `read`, `search`, and `thread` accept `--columns` to choose output
+columns: a full list (`--columns time,user,message`) or add/remove from the
+default (`--columns -permalink,-root_id`). Unknown names error with the valid
+set.
+
+**Dry run** — `post` and `file upload` accept `--dry-run` to resolve the target
+and preview what would be sent without posting or uploading.
 
 ## Output modes
 
@@ -93,11 +102,26 @@ Files follow the XDG Base Directory specification:
 
 | File | Location | Notes |
 |---|---|---|
-| Preferences | `$XDG_CONFIG_HOME/mmrun/config.toml` | `server_url`, `default_team`, `output_mode` |
+| Preferences | `$XDG_CONFIG_HOME/mmrun/config.toml` | see keys below |
 | Session | `$XDG_STATE_HOME/mmrun/session.json` | token + user; `0600`, managed by `auth` |
 | Downloads | `$XDG_DOWNLOAD_DIR` (or `~/Downloads`) | default target for `file download` |
 
-`config.toml` is safe to edit by hand; `session.json` holds your secret token and is not meant for manual editing.
+Manage `config.toml` with the `config` command instead of editing by hand:
+
+```sh
+mmrun config generate          # write a commented default file
+mmrun config list              # show all settings and effective values
+mmrun config set default_team sberdevices
+mmrun config get color
+mmrun config path
+```
+
+Keys: `server_url`, `default_team`, `output_mode` (auto|human|ai|json),
+`default_limit` (message page size), `preview_len` (message preview length),
+`color` (auto|always|never; `NO_COLOR` is also honored), `download_dir`,
+`columns` (default columns for `read`/`search`). Precedence is
+**flag > config > default**. `session.json` holds your secret token and is not
+meant for manual editing.
 
 ## Development
 

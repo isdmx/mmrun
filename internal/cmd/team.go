@@ -41,5 +41,5 @@ func runTeamList(app *appContext, w io.Writer) error {
 	for _, t := range teams {
 		res.Rows = append(res.Rows, output.Row{"name": t.Name, "display": t.DisplayName, "id": t.Id})
 	}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }

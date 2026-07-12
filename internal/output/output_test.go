@@ -54,3 +54,40 @@ func TestModeSelection_AutoNonTTYIsAI(t *testing.T) {
 		t.Errorf("explicit json = %q, want json", got)
 	}
 }
+
+func TestColorMode(t *testing.T) {
+	if colorEnabled("never", true) {
+		t.Error("never must disable color")
+	}
+	if !colorEnabled("always", false) {
+		t.Error("always must enable color even without TTY")
+	}
+	if colorEnabled("auto", false) {
+		t.Error("auto without TTY must be off")
+	}
+	if !colorEnabled("auto", true) {
+		t.Error("auto with TTY must be on")
+	}
+}
+
+func TestHumanHighlight(t *testing.T) {
+	var buf bytes.Buffer
+	r := humanRenderer{color: true, highlight: []string{"@alice"}}
+	res := Result{
+		Columns: []string{"user", "message"},
+		Rows:    []Row{{"user": "@alice", "message": "hi @alice"}},
+	}
+	if err := r.Render(&buf, res); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "\x1b[") {
+		t.Error("expected ANSI when highlighting with color")
+	}
+}
+
+func TestNoColorEnv(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	if colorEnabled("always", true) {
+		t.Error("NO_COLOR must force color off")
+	}
+}

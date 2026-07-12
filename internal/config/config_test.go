@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -34,5 +35,36 @@ func TestLoadSaveRoundTrip(t *testing.T) {
 	}
 	if out.ServerURL != in.ServerURL || out.DefaultTeam != in.DefaultTeam || out.OutputMode != in.OutputMode {
 		t.Errorf("round trip mismatch: got %+v want %+v", out, in)
+	}
+}
+
+func TestDefaults(t *testing.T) {
+	c := &Config{}
+	if c.DefaultLimit() != 50 {
+		t.Errorf("DefaultLimit = %d, want 50", c.DefaultLimit())
+	}
+	if c.PreviewLen() != 140 {
+		t.Errorf("PreviewLen = %d, want 140", c.PreviewLen())
+	}
+	if c.Color() != "auto" {
+		t.Errorf("Color = %q, want auto", c.Color())
+	}
+	c2 := &Config{DefaultLimit_: 10, PreviewLen_: 80, ColorMode: "never"}
+	if c2.DefaultLimit() != 10 || c2.PreviewLen() != 80 || c2.Color() != "never" {
+		t.Errorf("overrides not honored: %+v", c2)
+	}
+}
+
+func TestSave_Perms0600(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if err := Save(&Config{DefaultTeam: "eng"}); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(Paths().ConfigFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Errorf("config perm = %o, want 600", perm)
 	}
 }

@@ -11,20 +11,26 @@ import (
 
 	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/config"
+	"github.com/isdmx/mmrun/internal/output"
 	"github.com/isdmx/mmrun/internal/session"
 )
 
 // appContext carries shared dependencies into command RunE functions.
 type appContext struct {
-	api         client.API
-	outputMode  string
-	defaultTeam string
-	userID      string
+	api            client.API
+	outputMode     string
+	defaultTeam    string
+	userID         string
+	username       string
+	color          string
+	previewLen     int
+	defaultLimit   int
+	downloadDir    string
+	columnsDefault string
 }
 
-// requireSession builds an authenticated appContext from the stored session.
-// When the requested output mode is "auto" (the default), a configured
-// output_mode preference is applied.
+// requireSession builds an authenticated appContext from the stored session and
+// config preferences.
 func requireSession(outputMode string) (*appContext, error) {
 	sess, err := session.Load()
 	if err != nil {
@@ -38,11 +44,26 @@ func requireSession(outputMode string) (*appContext, error) {
 		outputMode = cfg.OutputMode
 	}
 	return &appContext{
-		api:         client.NewWithToken(sess.ServerURL, sess.Token),
-		outputMode:  outputMode,
-		defaultTeam: cfg.DefaultTeam,
-		userID:      sess.UserID,
+		api:            client.NewWithToken(sess.ServerURL, sess.Token),
+		outputMode:     outputMode,
+		defaultTeam:    cfg.DefaultTeam,
+		userID:         sess.UserID,
+		username:       sess.Username,
+		color:          cfg.Color(),
+		previewLen:     cfg.PreviewLen(),
+		defaultLimit:   cfg.DefaultLimit(),
+		downloadDir:    cfg.DownloadDir(),
+		columnsDefault: cfg.Columns,
 	}, nil
+}
+
+// render writes a Result using the app's output mode, color, and highlight terms.
+func (a *appContext) render(w io.Writer, res output.Result) error {
+	opts := output.Options{Color: a.color}
+	if a.username != "" {
+		opts.Highlight = []string{"@" + a.username}
+	}
+	return output.NewWithOptions(a.outputMode, stdoutFile(w), opts).Render(w, res)
 }
 
 // stdoutFile returns os.Stdout when w is os.Stdout, else os.Stdout as a fallback

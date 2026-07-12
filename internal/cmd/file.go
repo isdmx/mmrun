@@ -6,11 +6,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
 
-	"github.com/isdmx/mmrun/internal/config"
 	"github.com/isdmx/mmrun/internal/output"
 )
 
@@ -29,7 +29,7 @@ func newFileCmd(outputMode *string) *cobra.Command {
 			}
 			dir := outDir
 			if dir == "" {
-				dir = config.Paths().DownloadDir
+				dir = app.downloadDir
 			}
 			paths, err := runFileDownload(app, args[0], dir)
 			if err != nil {
@@ -39,13 +39,14 @@ func newFileCmd(outputMode *string) *cobra.Command {
 			for _, p := range paths {
 				res.Rows = append(res.Rows, output.Row{"path": p})
 			}
-			return output.New(app.outputMode, stdoutFile(cmd.OutOrStdout())).Render(cmd.OutOrStdout(), res)
+			return app.render(cmd.OutOrStdout(), res)
 		},
 	}
 	download.Flags().StringVar(&outDir, "out", "", "output directory (defaults to XDG download dir)")
 
 	var message string
 	var uploadTeam string
+	var uploadDryRun bool
 	upload := &cobra.Command{
 		Use:   "upload <channel> <path>...",
 		Short: "Upload one or more files, optionally with a message",
@@ -55,11 +56,12 @@ func newFileCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runFileUpload(app, args[0], args[1:], message, uploadTeam, cmd.OutOrStdout())
+			return runFileUpload(app, args[0], args[1:], message, uploadTeam, uploadDryRun, cmd.OutOrStdout())
 		},
 	}
 	upload.Flags().StringVar(&message, "message", "", "message to accompany the upload")
 	upload.Flags().StringVar(&uploadTeam, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
+	upload.Flags().BoolVar(&uploadDryRun, "dry-run", false, "resolve the target and preview without uploading")
 
 	file.AddCommand(download, upload)
 	return file
@@ -110,11 +112,23 @@ func fileInfosFor(ctx context.Context, app *appContext, id string) ([]*model.Fil
 	return nil, nil
 }
 
-func runFileUpload(app *appContext, channelRef string, paths []string, message, team string, w io.Writer) error {
+func runFileUpload(app *appContext, channelRef string, paths []string, message, team string, dryRun bool, w io.Writer) error {
 	ctx := context.Background()
 	ch, err := app.resolveChannel(ctx, channelRef, team)
 	if err != nil {
 		return err
+	}
+	if dryRun {
+		res := output.Result{
+			Title:   "Dry run (not uploaded)",
+			Columns: []string{"field", "value"},
+			Rows: []output.Row{
+				{"field": "channel", "value": ch.Id},
+				{"field": "message", "value": message},
+				{"field": "files", "value": strings.Join(paths, ", ")},
+			},
+		}
+		return app.render(w, res)
 	}
 	fileIDs, err := uploadFiles(ctx, app, ch.Id, paths)
 	if err != nil {
@@ -125,7 +139,7 @@ func runFileUpload(app *appContext, channelRef string, paths []string, message, 
 	if err != nil {
 		return err
 	}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, output.Result{Text: created.Id})
+	return app.render(w, output.Result{Text: created.Id})
 }
 
 // uploadFiles uploads each path to the channel and returns the resulting file

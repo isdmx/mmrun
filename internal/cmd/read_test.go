@@ -19,6 +19,7 @@ func TestRead_RendersMessagesInOrder(t *testing.T) {
 	app := &appContext{
 		api:        &fakeAPI{resolved: &model.Channel{Id: "c1"}, posts: pl},
 		outputMode: "ai",
+		previewLen: 140,
 	}
 	var buf bytes.Buffer
 	if err := runRead(app, "eng/general", readOpts{limit: 50}, &buf); err != nil {
@@ -46,6 +47,41 @@ func TestParseSince(t *testing.T) {
 	}
 }
 
+func TestRead_ColumnsFilter(t *testing.T) {
+	pl := &model.PostList{
+		Order: []string{"p1"},
+		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "hello", UserId: "u2", ChannelId: "c1", CreateAt: 1000}},
+	}
+	app := &appContext{
+		api:        &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}}},
+		outputMode: "ai",
+		previewLen: 140,
+	}
+	var buf bytes.Buffer
+	if err := runRead(app, "eng/general", readOpts{columns: "user,message"}, &buf); err != nil {
+		t.Fatalf("runRead: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "user=bob") || !strings.Contains(out, "message=hello") {
+		t.Errorf("missing selected columns:\n%s", out)
+	}
+	if strings.Contains(out, "post_id=") || strings.Contains(out, "permalink=") {
+		t.Errorf("unselected columns present:\n%s", out)
+	}
+}
+
+func TestRead_BadColumn(t *testing.T) {
+	app := &appContext{
+		api:        &fakeAPI{resolved: &model.Channel{Id: "c1"}, posts: &model.PostList{}},
+		outputMode: "ai",
+		previewLen: 140,
+	}
+	var buf bytes.Buffer
+	if err := runRead(app, "eng/general", readOpts{columns: "bogus"}, &buf); err == nil {
+		t.Error("expected error for unknown column")
+	}
+}
+
 func TestRead_Thread(t *testing.T) {
 	pl := &model.PostList{
 		Order: []string{"p1"},
@@ -54,6 +90,7 @@ func TestRead_Thread(t *testing.T) {
 	app := &appContext{
 		api:        &fakeAPI{thread: pl},
 		outputMode: "ai",
+		previewLen: 140,
 	}
 	var buf bytes.Buffer
 	if err := runRead(app, "ignored", readOpts{thread: "p1"}, &buf); err != nil {

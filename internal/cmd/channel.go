@@ -97,7 +97,7 @@ func runChannelList(app *appContext, teamName, chType string, w io.Writer) error
 			"id":      c.Id,
 		})
 	}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }
 
 func runChannelSearch(app *appContext, teamName, term string, w io.Writer) error {
@@ -119,7 +119,7 @@ func runChannelSearch(app *appContext, teamName, term string, w io.Writer) error
 			"id":      c.Id,
 		})
 	}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }
 
 // matchChannelType reports whether a channel of the given type should be shown
