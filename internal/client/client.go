@@ -19,6 +19,7 @@ type API interface {
 	ChannelsForUser(ctx context.Context, teamID, userID string) ([]*model.Channel, error)
 	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
 	Search(ctx context.Context, teamID, terms string, orSearch bool) (*model.PostList, error)
+	PostsForChannel(ctx context.Context, channelID string, perPage int) (*model.PostList, error)
 	UploadFile(ctx context.Context, data []byte, channelID, filename string) (*model.FileUploadResponse, error)
 	GetFile(ctx context.Context, fileID string) ([]byte, error)
 	FileInfosForPost(ctx context.Context, postID string) ([]*model.FileInfo, error)
@@ -85,6 +86,11 @@ func (c *Client) CreatePost(ctx context.Context, post *model.Post) (*model.Post,
 
 func (c *Client) Search(ctx context.Context, teamID, terms string, orSearch bool) (*model.PostList, error) {
 	pl, _, err := c.mm.SearchPosts(ctx, teamID, terms, orSearch)
+	return pl, err
+}
+
+func (c *Client) PostsForChannel(ctx context.Context, channelID string, perPage int) (*model.PostList, error) {
+	pl, _, err := c.mm.GetPostsForChannel(ctx, channelID, 0, perPage, "", false, false)
 	return pl, err
 }
 

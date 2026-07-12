@@ -45,6 +45,9 @@ func (f *fakeAPI) CreatePost(context.Context, *model.Post) (*model.Post, error) 
 func (f *fakeAPI) Search(context.Context, string, string, bool) (*model.PostList, error) {
 	return f.posts, f.err
 }
+func (f *fakeAPI) PostsForChannel(context.Context, string, int) (*model.PostList, error) {
+	return f.posts, f.err
+}
 func (f *fakeAPI) UploadFile(context.Context, []byte, string, string) (*model.FileUploadResponse, error) {
 	return f.uploadResp, f.err
 }
