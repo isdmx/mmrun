@@ -58,3 +58,18 @@ func TestPost_AttachesMultipleFiles(t *testing.T) {
 			len(fake.lastPost.FileIds), fake.lastPost.FileIds)
 	}
 }
+
+func TestPost_DryRun(t *testing.T) {
+	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}}
+	app := &appContext{api: fake, outputMode: "ai"}
+	var buf bytes.Buffer
+	if err := runPost(app, "eng/general", "hello", postOpts{dryRun: true}, &buf); err != nil {
+		t.Fatalf("runPost dry-run: %v", err)
+	}
+	if fake.lastPost != nil {
+		t.Error("dry-run must not create a post")
+	}
+	if !strings.Contains(buf.String(), "hello") {
+		t.Errorf("dry-run should preview the message:\n%s", buf.String())
+	}
+}

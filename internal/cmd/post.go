@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"io"
+	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
@@ -14,6 +15,7 @@ type postOpts struct {
 	replyTo string
 	files   []string
 	team    string
+	dryRun  bool
 }
 
 func newPostCmd(outputMode *string) *cobra.Command {
@@ -33,6 +35,7 @@ func newPostCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&opts.replyTo, "reply-to", "", "root post ID to reply in-thread")
 	cmd.Flags().StringArrayVar(&opts.files, "file", nil, "path to a file to attach (repeatable)")
 	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
+	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "resolve the target and preview without posting")
 	return cmd
 }
 
@@ -41,6 +44,19 @@ func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Wr
 	ch, err := app.resolveChannel(ctx, channelRef, opts.team)
 	if err != nil {
 		return err
+	}
+	if opts.dryRun {
+		res := output.Result{
+			Title:   "Dry run (not sent)",
+			Columns: []string{"field", "value"},
+			Rows: []output.Row{
+				{"field": "channel", "value": ch.Id},
+				{"field": "reply_to", "value": opts.replyTo},
+				{"field": "files", "value": strings.Join(opts.files, ", ")},
+				{"field": "message", "value": message},
+			},
+		}
+		return app.render(w, res)
 	}
 	fileIDs, err := uploadFiles(ctx, app, ch.Id, opts.files)
 	if err != nil {
