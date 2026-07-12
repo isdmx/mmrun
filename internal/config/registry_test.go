@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -59,6 +60,30 @@ func TestRegistry_Template(t *testing.T) {
 	}
 	if !strings.Contains(tmpl, "#") {
 		t.Error("template should contain comments")
+	}
+}
+
+func TestTemplate_GeneratesLoadableConfig(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if err := Save(&Config{}); err != nil {
+		t.Fatal(err)
+	}
+	path := Paths().ConfigFile
+	if err := os.WriteFile(path, []byte(Template()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("generated template is not loadable: %v", err)
+	}
+	if c.DefaultLimit() != 50 {
+		t.Errorf("DefaultLimit = %d, want 50", c.DefaultLimit())
+	}
+	if c.PreviewLen() != 140 {
+		t.Errorf("PreviewLen = %d, want 140", c.PreviewLen())
+	}
+	if strings.Contains(Template(), `default_limit = "50"`) {
+		t.Error("integer key default_limit must be emitted unquoted")
 	}
 }
 

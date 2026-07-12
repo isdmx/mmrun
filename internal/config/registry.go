@@ -11,6 +11,7 @@ type setting struct {
 	key         string
 	description string
 	def         string
+	raw         bool
 	validate    func(string) error
 	get         func(*Config) string
 	set         func(*Config, string) error
@@ -82,12 +83,14 @@ func settingsFor(c *Config) map[string]setting {
 		},
 		"default_limit": {
 			key: "default_limit", description: "default message page size", def: "50",
+			raw:      true,
 			validate: posIntValidator,
 			get:      func(c *Config) string { return strconv.Itoa(c.DefaultLimit()) },
 			set:      setInt(&c.DefaultLimit_),
 		},
 		"preview_len": {
 			key: "preview_len", description: "message preview length (runes)", def: "140",
+			raw:      true,
 			validate: posIntValidator,
 			get:      func(c *Config) string { return strconv.Itoa(c.PreviewLen()) },
 			set:      setInt(&c.PreviewLen_),
@@ -178,13 +181,18 @@ func Describe(key string) (desc, def string, ok bool) {
 
 // Template renders a fully-commented config.toml with default values.
 func Template() string {
+	settings := settingsFor(&Config{})
 	var b strings.Builder
 	b.WriteString("# mmrun configuration\n")
 	b.WriteString("# Generated defaults; edit as needed. See 'mmrun config list'.\n\n")
 	for _, key := range Keys() {
-		desc, def, _ := Describe(key)
-		fmt.Fprintf(&b, "# %s\n", desc)
-		fmt.Fprintf(&b, "%s = %q\n\n", key, def)
+		s := settings[key]
+		fmt.Fprintf(&b, "# %s\n", s.description)
+		if s.raw {
+			fmt.Fprintf(&b, "%s = %s\n\n", key, s.def)
+		} else {
+			fmt.Fprintf(&b, "%s = %q\n\n", key, s.def)
+		}
 	}
 	return b.String()
 }
