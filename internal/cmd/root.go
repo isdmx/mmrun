@@ -28,6 +28,7 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newPostCmd(&opts.outputMode))
 	root.AddCommand(newReadCmd(&opts.outputMode))
 	root.AddCommand(newSearchCmd(&opts.outputMode))
+	root.AddCommand(newFileCmd(&opts.outputMode))
 	return root
 }
 
