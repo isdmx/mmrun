@@ -20,13 +20,13 @@ var messageColumns = []string{"time", "channel", "user", "files", "root_id", "po
 // resolves user IDs to usernames (one batched call), channel IDs to readable
 // names (cached), constructs permalinks when a team is known, and collapses
 // message whitespace for non-JSON output.
-func renderMessages(ctx context.Context, app *appContext, title string, posts []*model.Post, permalinkTeam string, full bool) output.Result {
+func renderMessages(ctx context.Context, app *appContext, title string, posts []*model.Post, permalinkTeam string, full bool, columns []string) output.Result {
 	usernames := resolveUsernames(ctx, app, posts)
 	channelNames := map[string]string{}
 	clean := app.outputMode != "json" && !full
 	server := serverBase(app)
 
-	res := output.Result{Title: title, Columns: messageColumns}
+	res := output.Result{Title: title, Columns: columns}
 	for _, p := range posts {
 		if p == nil {
 			continue
@@ -37,7 +37,7 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 		}
 		msg := p.Message
 		if clean {
-			msg = preview(msg, maxMessagePreview)
+			msg = preview(msg, app.previewLen)
 		}
 		row := output.Row{
 			"time":    time.UnixMilli(p.CreateAt).Format(time.RFC3339),

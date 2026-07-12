@@ -17,9 +17,10 @@ func TestSearch_RendersHits(t *testing.T) {
 		api:        &fakeAPI{teams: []*model.Team{{Id: "t1", Name: "eng"}}, posts: pl},
 		outputMode: "ai",
 		userID:     "u1",
+		previewLen: 140,
 	}
 	var buf bytes.Buffer
-	if err := runSearch(app, "deploy", "eng", false, &buf); err != nil {
+	if err := runSearch(app, "deploy", "eng", false, "", &buf); err != nil {
 		t.Fatalf("runSearch: %v", err)
 	}
 	if !strings.Contains(buf.String(), "deploy failed") {

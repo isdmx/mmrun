@@ -12,6 +12,7 @@ import (
 func newSearchCmd(outputMode *string) *cobra.Command {
 	var teamName string
 	var full bool
+	var columns string
 	cmd := &cobra.Command{
 		Use:   "search <query>",
 		Short: "Search messages (server-side; supports Mattermost search modifiers)",
@@ -21,15 +22,16 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runSearch(app, strings.Join(args, " "), teamName, full, cmd.OutOrStdout())
+			return runSearch(app, strings.Join(args, " "), teamName, full, columns, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&teamName, "team", "", "team to search within (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&full, "full", false, "show full message text instead of a single-line preview")
+	cmd.Flags().StringVar(&columns, "columns", "", "columns to show (e.g. time,user,message or -permalink)")
 	return cmd
 }
 
-func runSearch(app *appContext, query, teamName string, full bool, w io.Writer) error {
+func runSearch(app *appContext, query, teamName string, full bool, columns string, w io.Writer) error {
 	ctx := context.Background()
 	teamID, resolvedTeam, err := app.resolveTeam(ctx, teamName)
 	if err != nil {
@@ -39,7 +41,15 @@ func runSearch(app *appContext, query, teamName string, full bool, w io.Writer) 
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Search results", postsInOrder(pl), resolvedTeam, full)
+	spec := columns
+	if spec == "" {
+		spec = app.columnsDefault
+	}
+	cols, err := resolveColumns(messageColumns, spec)
+	if err != nil {
+		return err
+	}
+	res := renderMessages(ctx, app, "Search results", postsInOrder(pl), resolvedTeam, full, cols)
 	return app.render(w, res)
 }
 

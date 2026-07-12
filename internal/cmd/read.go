@@ -12,11 +12,12 @@ import (
 )
 
 type readOpts struct {
-	limit  int
-	since  string
-	thread string
-	team   string
-	full   bool
+	limit   int
+	since   string
+	thread  string
+	team    string
+	full    bool
+	columns string
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
@@ -33,11 +34,12 @@ func newReadCmd(outputMode *string) *cobra.Command {
 			return runRead(app, args[0], opts, cmd.OutOrStdout())
 		},
 	}
-	cmd.Flags().IntVar(&opts.limit, "limit", 50, "number of messages to fetch")
+	cmd.Flags().IntVar(&opts.limit, "limit", 0, "number of messages to fetch (default from config or 50)")
 	cmd.Flags().StringVar(&opts.since, "since", "", "only messages since this time: a duration (e.g. 24h) or RFC3339 timestamp")
 	cmd.Flags().StringVar(&opts.thread, "thread", "", "fetch the thread rooted at this post ID instead of the channel")
 	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full message text instead of a single-line preview")
+	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. time,user,message or -permalink)")
 	return cmd
 }
 
@@ -56,8 +58,21 @@ func parseSince(v string) (int64, error) {
 func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) error {
 	ctx := context.Background()
 
+	limit := opts.limit
+	if limit <= 0 {
+		limit = app.defaultLimit
+	}
+
+	spec := opts.columns
+	if spec == "" {
+		spec = app.columnsDefault
+	}
+	columns, err := resolveColumns(messageColumns, spec)
+	if err != nil {
+		return err
+	}
+
 	var pl *model.PostList
-	var err error
 	title := "Messages"
 	permalinkTeam := ""
 
@@ -78,14 +93,14 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 			}
 			pl, err = app.api.PostsSince(ctx, ch.Id, since)
 		} else {
-			pl, err = app.api.PostsForChannel(ctx, ch.Id, opts.limit)
+			pl, err = app.api.PostsForChannel(ctx, ch.Id, limit)
 		}
 	}
 	if err != nil {
 		return err
 	}
 
-	res := renderMessages(ctx, app, title, chronological(pl), permalinkTeam, opts.full)
+	res := renderMessages(ctx, app, title, chronological(pl), permalinkTeam, opts.full, columns)
 	return app.render(w, res)
 }
 

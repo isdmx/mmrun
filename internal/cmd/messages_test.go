@@ -24,6 +24,7 @@ func TestRead_IncludesActionableColumns(t *testing.T) {
 			posts:    pl,
 		},
 		outputMode: "ai",
+		previewLen: 140,
 	}
 	var buf bytes.Buffer
 	if err := runRead(app, "eng/general", readOpts{limit: 50}, &buf); err != nil {
