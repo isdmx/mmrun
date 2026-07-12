@@ -1,0 +1,7 @@
+# Documentation / working notes (never committed)
+docs/
+
+# Build artifacts
+/mmrun
+mmrun
+*.out
