@@ -25,6 +25,7 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newAuthCmd(&opts.outputMode))
 	root.AddCommand(newTeamCmd(&opts.outputMode))
 	root.AddCommand(newChannelCmd(&opts.outputMode))
+	root.AddCommand(newPostCmd(&opts.outputMode))
 	return root
 }
 
