@@ -21,6 +21,7 @@ type Session struct {
 	ServerURL string    `json:"server_url"`
 	Token     string    `json:"token"`
 	UserID    string    `json:"user_id"`
+	Username  string    `json:"username,omitempty"`
 	SessionID string    `json:"session_id,omitempty"`
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
 }
