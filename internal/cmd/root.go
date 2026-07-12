@@ -1,3 +1,4 @@
+// Package cmd implements the mmrun command-line interface (cobra commands).
 package cmd
 
 import (
@@ -6,6 +7,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/version"
 )
 
 type globalOpts struct {
@@ -18,6 +21,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root := &cobra.Command{
 		Use:           "mmrun",
 		Short:         "Scriptable Mattermost CLI client",
+		Version:       version.String(),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -27,6 +31,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 			return nil
 		},
 	}
+	root.SetVersionTemplate("{{.Version}}\n")
 	root.PersistentFlags().StringVarP(&opts.outputMode, "output", "o", "auto", "output mode: auto|human|ai|json")
 	root.AddCommand(newMeCmd(&opts.outputMode))
 	root.AddCommand(newAuthCmd(&opts.outputMode))
@@ -39,6 +44,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newSearchCmd(&opts.outputMode))
 	root.AddCommand(newFileCmd(&opts.outputMode))
 	root.AddCommand(newTailCmd(&opts.outputMode))
+	root.AddCommand(newVersionCmd(&opts.outputMode))
 	return root
 }
 
