@@ -30,6 +30,7 @@ type API interface {
 	PostsForChannel(ctx context.Context, channelID string, perPage int) (*model.PostList, error)
 	PostsSince(ctx context.Context, channelID string, since int64) (*model.PostList, error)
 	PostThread(ctx context.Context, postID string) (*model.PostList, error)
+	UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int) (*model.Threads, error)
 	UploadFile(ctx context.Context, data []byte, channelID, filename string) (*model.FileUploadResponse, error)
 	GetFile(ctx context.Context, fileID string) ([]byte, error)
 	FileInfo(ctx context.Context, fileID string) (*model.FileInfo, error)
@@ -157,6 +158,17 @@ func (c *Client) PostsSince(ctx context.Context, channelID string, since int64) 
 func (c *Client) PostThread(ctx context.Context, postID string) (*model.PostList, error) {
 	pl, _, err := c.mm.GetPostThread(ctx, postID, "", false)
 	return pl, err
+}
+
+// UserThreads returns the threads the user follows in a team, most recently
+// updated first.
+func (c *Client) UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int) (*model.Threads, error) {
+	opts := model.GetUserThreadsOpts{Unread: unread}
+	if pageSize > 0 {
+		opts.PageSize = uint64(pageSize)
+	}
+	th, _, err := c.mm.GetUserThreads(ctx, userID, teamID, opts)
+	return th, err
 }
 
 func (c *Client) UploadFile(ctx context.Context, data []byte, channelID, filename string) (*model.FileUploadResponse, error) {

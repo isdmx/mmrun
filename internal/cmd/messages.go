@@ -21,7 +21,7 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 	usernames := resolveUsernames(ctx, app, posts)
 	channelNames := map[string]string{}
 	clean := app.outputMode != "json" && !full
-	server := strings.TrimRight(app.api.ServerURL(), "/")
+	server := serverBase(app)
 
 	res := output.Result{Title: title, Columns: messageColumns}
 	for _, p := range posts {
@@ -106,4 +106,9 @@ func preview(s string, max int) string {
 		return string(r[:max]) + "…"
 	}
 	return s
+}
+
+// serverBase returns the server URL without a trailing slash, for permalinks.
+func serverBase(app *appContext) string {
+	return strings.TrimRight(app.api.ServerURL(), "/")
 }

@@ -18,6 +18,7 @@ type fakeAPI struct {
 	users      []*model.User
 	posts      *model.PostList
 	thread     *model.PostList
+	threads    *model.Threads
 	created    *model.Post
 	resolved   *model.Channel
 	dmChannel  *model.Channel
@@ -88,6 +89,9 @@ func (f *fakeAPI) PostsSince(context.Context, string, int64) (*model.PostList, e
 }
 func (f *fakeAPI) PostThread(context.Context, string) (*model.PostList, error) {
 	return f.thread, f.err
+}
+func (f *fakeAPI) UserThreads(context.Context, string, string, bool, int) (*model.Threads, error) {
+	return f.threads, f.err
 }
 func (f *fakeAPI) UploadFile(context.Context, []byte, string, string) (*model.FileUploadResponse, error) {
 	return f.uploadResp, f.err
