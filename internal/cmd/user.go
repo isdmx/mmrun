@@ -5,8 +5,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/isdmx/mmrun/internal/output"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newUserCmd(outputMode *string) *cobra.Command {

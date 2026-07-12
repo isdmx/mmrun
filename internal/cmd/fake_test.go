@@ -3,8 +3,9 @@ package cmd
 import (
 	"context"
 
-	"github.com/isdmx/mmrun/internal/client"
 	"github.com/mattermost/mattermost/server/public/model"
+
+	"github.com/isdmx/mmrun/internal/client"
 )
 
 // fakeAPI implements client.API for command tests. Fields let each test set
@@ -48,51 +49,66 @@ func (f *fakeAPI) Status(context.Context, string) (*model.Status, error) { retur
 func (f *fakeAPI) UserByUsername(context.Context, string) (*model.User, error) {
 	return f.userByName, f.err
 }
+
 func (f *fakeAPI) UsersByIDs(context.Context, []string) ([]*model.User, error) {
 	return f.users, f.err
 }
+
 func (f *fakeAPI) SearchUsers(context.Context, string, string, int) ([]*model.User, error) {
 	return f.users, f.err
 }
+
 func (f *fakeAPI) TeamsForUser(context.Context, string) ([]*model.Team, error) {
 	return f.teams, f.err
 }
+
 func (f *fakeAPI) Team(context.Context, string) (*model.Team, error) {
 	if len(f.teams) > 0 {
 		return f.teams[0], f.err
 	}
 	return nil, f.err
 }
+
 func (f *fakeAPI) ChannelsForUser(context.Context, string, string) ([]*model.Channel, error) {
 	return f.channels, f.err
 }
+
 func (f *fakeAPI) Channel(context.Context, string) (*model.Channel, error) {
 	return f.resolved, f.err
 }
+
 func (f *fakeAPI) SearchChannels(context.Context, string, string) ([]*model.Channel, error) {
 	return f.channels, f.err
 }
+
 func (f *fakeAPI) CreateDirectChannel(context.Context, string, string) (*model.Channel, error) {
 	return f.dmChannel, f.err
 }
+
 func (f *fakeAPI) CreatePost(context.Context, *model.Post) (*model.Post, error) {
 	return f.created, f.err
 }
+
 func (f *fakeAPI) Search(context.Context, string, string, bool) (*model.PostList, error) {
 	return f.posts, f.err
 }
+
 func (f *fakeAPI) PostsForChannel(context.Context, string, int) (*model.PostList, error) {
 	return f.posts, f.err
 }
+
 func (f *fakeAPI) PostsSince(context.Context, string, int64) (*model.PostList, error) {
 	return f.posts, f.err
 }
+
 func (f *fakeAPI) PostThread(context.Context, string) (*model.PostList, error) {
 	return f.thread, f.err
 }
+
 func (f *fakeAPI) UserThreads(context.Context, string, string, bool, int) (*model.Threads, error) {
 	return f.threads, f.err
 }
+
 func (f *fakeAPI) UploadFile(context.Context, []byte, string, string) (*model.FileUploadResponse, error) {
 	return f.uploadResp, f.err
 }
@@ -100,6 +116,7 @@ func (f *fakeAPI) GetFile(context.Context, string) ([]byte, error) { return f.fi
 func (f *fakeAPI) FileInfo(context.Context, string) (*model.FileInfo, error) {
 	return f.fileInfo, f.err
 }
+
 func (f *fakeAPI) FileInfosForPost(context.Context, string) ([]*model.FileInfo, error) {
 	return f.fileInfos, f.err
 }
@@ -107,6 +124,7 @@ func (f *fakeAPI) ServerURL() string { return "https://mm.example.com" }
 func (f *fakeAPI) ResolveChannel(context.Context, string, string, string) (*model.Channel, error) {
 	return f.resolved, f.err
 }
+
 func (f *fakeAPI) StreamPosts(context.Context) (<-chan client.WSEvent, <-chan error, error) {
 	if f.streamErr != nil {
 		return nil, nil, f.streamErr

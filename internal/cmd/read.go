@@ -7,9 +7,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/isdmx/mmrun/internal/output"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 type readOpts struct {

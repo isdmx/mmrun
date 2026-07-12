@@ -4,8 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/isdmx/mmrun/internal/session"
 	"github.com/mattermost/mattermost/server/public/model"
+
+	"github.com/isdmx/mmrun/internal/session"
 )
 
 func TestExitCode(t *testing.T) {

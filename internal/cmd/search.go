@@ -5,9 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/isdmx/mmrun/internal/output"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newSearchCmd(outputMode *string) *cobra.Command {

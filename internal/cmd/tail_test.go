@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/isdmx/mmrun/internal/client"
 	"github.com/mattermost/mattermost/server/public/model"
+
+	"github.com/isdmx/mmrun/internal/client"
 )
 
 func TestPostedEventToRow(t *testing.T) {

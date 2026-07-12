@@ -7,10 +7,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mattermost/mattermost/server/public/model"
+
 	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/config"
 	"github.com/isdmx/mmrun/internal/session"
-	"github.com/mattermost/mattermost/server/public/model"
 )
 
 // appContext carries shared dependencies into command RunE functions.

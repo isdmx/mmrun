@@ -4,8 +4,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/isdmx/mmrun/internal/output"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newTeamCmd(outputMode *string) *cobra.Command {

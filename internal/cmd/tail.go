@@ -8,9 +8,10 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/isdmx/mmrun/internal/output"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newTailCmd(outputMode *string) *cobra.Command {
