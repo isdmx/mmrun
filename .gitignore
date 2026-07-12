@@ -5,3 +5,6 @@ docs/
 /mmrun
 mmrun
 *.out
+/bin/
+/dist/
+coverage.out
