@@ -35,4 +35,8 @@ func TestResolveColumns(t *testing.T) {
 	if _, err := resolveColumns(def, "user,-time"); err == nil {
 		t.Error("expected mixing error")
 	}
+
+	if _, err := resolveColumns(def, "+bogus"); err == nil {
+		t.Error("expected unknown-column error for +bogus modifier")
+	}
 }

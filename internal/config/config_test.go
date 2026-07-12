@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -51,5 +52,19 @@ func TestDefaults(t *testing.T) {
 	c2 := &Config{DefaultLimit_: 10, PreviewLen_: 80, ColorMode: "never"}
 	if c2.DefaultLimit() != 10 || c2.PreviewLen() != 80 || c2.Color() != "never" {
 		t.Errorf("overrides not honored: %+v", c2)
+	}
+}
+
+func TestSave_Perms0600(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if err := Save(&Config{DefaultTeam: "eng"}); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(Paths().ConfigFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Errorf("config perm = %o, want 600", perm)
 	}
 }

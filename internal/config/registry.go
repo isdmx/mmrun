@@ -8,7 +8,6 @@ import (
 )
 
 type setting struct {
-	key         string
 	description string
 	def         string
 	raw         bool
@@ -64,51 +63,51 @@ func setInt(target *int) func(*Config, string) error {
 func settingsFor(c *Config) map[string]setting {
 	return map[string]setting{
 		"server_url": {
-			key: "server_url", description: "Mattermost server URL", def: "",
+			description: "Mattermost server URL", def: "",
 			validate: func(string) error { return nil },
 			get:      func(c *Config) string { return c.ServerURL },
 			set:      func(c *Config, v string) error { c.ServerURL = v; return nil },
 		},
 		"default_team": {
-			key: "default_team", description: "team used for bare channel names", def: "",
+			description: "team used for bare channel names", def: "",
 			validate: func(string) error { return nil },
 			get:      func(c *Config) string { return c.DefaultTeam },
 			set:      func(c *Config, v string) error { c.DefaultTeam = v; return nil },
 		},
 		"output_mode": {
-			key: "output_mode", description: "output mode: auto|human|ai|json", def: "auto",
+			description: "output mode: auto|human|ai|json", def: "auto",
 			validate: enumValidator("auto", "human", "ai", "json"),
 			get:      func(c *Config) string { return c.OutputMode },
 			set:      func(c *Config, v string) error { c.OutputMode = v; return nil },
 		},
 		"default_limit": {
-			key: "default_limit", description: "default message page size", def: "50",
+			description: "default message page size", def: "50",
 			raw:      true,
 			validate: posIntValidator,
 			get:      func(c *Config) string { return strconv.Itoa(c.DefaultLimit()) },
 			set:      setInt(&c.DefaultLimit_),
 		},
 		"preview_len": {
-			key: "preview_len", description: "message preview length (runes)", def: "140",
+			description: "message preview length (runes)", def: "140",
 			raw:      true,
 			validate: posIntValidator,
 			get:      func(c *Config) string { return strconv.Itoa(c.PreviewLen()) },
 			set:      setInt(&c.PreviewLen_),
 		},
 		"color": {
-			key: "color", description: "colorized output: auto|always|never", def: "auto",
+			description: "colorized output: auto|always|never", def: "auto",
 			validate: enumValidator("auto", "always", "never"),
 			get:      func(c *Config) string { return c.Color() },
 			set:      func(c *Config, v string) error { c.ColorMode = v; return nil },
 		},
 		"download_dir": {
-			key: "download_dir", description: "download directory (blank = XDG default)", def: "",
+			description: "download directory (blank = XDG default)", def: "",
 			validate: func(string) error { return nil },
-			get:      func(c *Config) string { return c.DownloadDir_ },
+			get:      func(c *Config) string { return c.DownloadDir() },
 			set:      func(c *Config, v string) error { c.DownloadDir_ = v; return nil },
 		},
 		"columns": {
-			key: "columns", description: "default columns for read/search (e.g. -permalink)", def: "",
+			description: "default columns for read/search (e.g. -permalink)", def: "",
 			validate: validateColumnsSpec,
 			get:      func(c *Config) string { return c.Columns },
 			set:      func(c *Config, v string) error { c.Columns = v; return nil },

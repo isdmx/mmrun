@@ -87,6 +87,17 @@ func TestTemplate_GeneratesLoadableConfig(t *testing.T) {
 	}
 }
 
+func TestGet_DownloadDirEffective(t *testing.T) {
+	c := &Config{}
+	v, err := Get(c, "download_dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v == "" {
+		t.Error("download_dir should resolve to the XDG default, not empty")
+	}
+}
+
 func TestKeys_Sorted(t *testing.T) {
 	keys := Keys()
 	if len(keys) != 8 {
