@@ -14,9 +14,46 @@ const appName = "mmrun"
 
 // Config holds user preferences persisted to config.toml.
 type Config struct {
-	ServerURL   string `toml:"server_url"`
-	DefaultTeam string `toml:"default_team"`
-	OutputMode  string `toml:"output_mode"`
+	ServerURL     string `toml:"server_url"`
+	DefaultTeam   string `toml:"default_team"`
+	OutputMode    string `toml:"output_mode"`
+	DefaultLimit_ int    `toml:"default_limit"` //nolint:revive // toml field paired with accessor method
+	PreviewLen_   int    `toml:"preview_len"`   //nolint:revive // toml field paired with accessor method
+	ColorMode     string `toml:"color"`
+	DownloadDir_  string `toml:"download_dir"` //nolint:revive // toml field paired with accessor method
+	Columns       string `toml:"columns"`
+}
+
+// DefaultLimit returns the configured page size, or 50.
+func (c *Config) DefaultLimit() int {
+	if c.DefaultLimit_ > 0 {
+		return c.DefaultLimit_
+	}
+	return 50
+}
+
+// PreviewLen returns the configured message preview length, or 140.
+func (c *Config) PreviewLen() int {
+	if c.PreviewLen_ > 0 {
+		return c.PreviewLen_
+	}
+	return 140
+}
+
+// Color returns the color mode: auto (default), always, or never.
+func (c *Config) Color() string {
+	if c.ColorMode == "" {
+		return "auto"
+	}
+	return c.ColorMode
+}
+
+// DownloadDir returns the configured download directory, or the XDG default.
+func (c *Config) DownloadDir() string {
+	if c.DownloadDir_ != "" {
+		return c.DownloadDir_
+	}
+	return Paths().DownloadDir
 }
 
 // PathSet holds resolved XDG file locations.
