@@ -13,8 +13,10 @@ type WSEvent struct {
 	Data  map[string]any
 }
 
-// StreamPosts connects the websocket and emits events until ctx is cancelled,
-// reconnecting with backoff on failure.
+// StreamPosts connects the websocket and emits events until ctx is cancelled.
+// A failure on the initial connection is reported on the error channel and
+// stops the stream. Drops after a successful connection trigger reconnection
+// with exponential backoff.
 func (c *Client) StreamPosts(ctx context.Context) (<-chan WSEvent, <-chan error, error) {
 	out := make(chan WSEvent)
 	errs := make(chan error, 1)
@@ -22,9 +24,14 @@ func (c *Client) StreamPosts(ctx context.Context) (<-chan WSEvent, <-chan error,
 	wsURL := c.mm.URL
 	go func() {
 		backoff := time.Second
+		connectedOnce := false
 		for {
 			ws, err := model.NewWebSocketClient4(toWS(wsURL), c.mm.AuthToken)
 			if err != nil {
+				if !connectedOnce {
+					errs <- err
+					return
+				}
 				select {
 				case <-time.After(backoff):
 					backoff = minDur(backoff*2, 30*time.Second)
@@ -34,6 +41,7 @@ func (c *Client) StreamPosts(ctx context.Context) (<-chan WSEvent, <-chan error,
 				}
 			}
 			ws.Listen()
+			connectedOnce = true
 			backoff = time.Second
 			for {
 				select {

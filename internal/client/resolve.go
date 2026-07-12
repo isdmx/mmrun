@@ -9,12 +9,26 @@ import (
 )
 
 // ResolveChannel resolves a reference to a channel. Supported forms:
+//   - "@username" (opens/returns the direct-message channel with that user)
 //   - "team/channel-name"
 //   - "channel-name" (uses defaultTeam)
 //   - a 26-char channel ID
 //
-// DM support (@username) is added in the post/read tasks.
-func (c *Client) ResolveChannel(ctx context.Context, ref, defaultTeam string) (*model.Channel, error) {
+// selfUserID is the ID of the authenticated user, required to open DM channels.
+func (c *Client) ResolveChannel(ctx context.Context, ref, defaultTeam, selfUserID string) (*model.Channel, error) {
+	if strings.HasPrefix(ref, "@") {
+		username := strings.TrimPrefix(ref, "@")
+		other, _, err := c.mm.GetUserByUsername(ctx, username, "")
+		if err != nil {
+			return nil, fmt.Errorf("resolve user %q: %w", username, err)
+		}
+		ch, _, err := c.mm.CreateDirectChannel(ctx, selfUserID, other.Id)
+		if err != nil {
+			return nil, fmt.Errorf("open DM with %q: %w", username, err)
+		}
+		return ch, nil
+	}
+
 	if model.IsValidId(ref) {
 		ch, _, err := c.mm.GetChannel(ctx, ref)
 		return ch, err

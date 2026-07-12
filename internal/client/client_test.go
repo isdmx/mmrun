@@ -44,11 +44,34 @@ func TestResolveChannel_ByTeamAndName(t *testing.T) {
 	defer srv.Close()
 
 	c := NewWithToken(srv.URL, "tok")
-	ch, err := c.ResolveChannel(context.Background(), "eng/general", "")
+	ch, err := c.ResolveChannel(context.Background(), "eng/general", "", "self")
 	if err != nil {
 		t.Fatalf("ResolveChannel: %v", err)
 	}
 	if ch.Id != "c1" {
 		t.Errorf("channel id = %q, want c1", ch.Id)
+	}
+}
+
+func TestResolveChannel_DirectMessage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v4/users/username/bob":
+			_ = json.NewEncoder(w).Encode(&model.User{Id: "u2", Username: "bob"})
+		case "/api/v4/channels/direct":
+			_ = json.NewEncoder(w).Encode(&model.Channel{Id: "dm1", Type: model.ChannelTypeDirect})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := NewWithToken(srv.URL, "tok")
+	ch, err := c.ResolveChannel(context.Background(), "@bob", "", "u1")
+	if err != nil {
+		t.Fatalf("ResolveChannel DM: %v", err)
+	}
+	if ch.Id != "dm1" {
+		t.Errorf("channel id = %q, want dm1", ch.Id)
 	}
 }
