@@ -17,8 +17,13 @@ type API interface {
 	Me(ctx context.Context) (*model.User, error)
 	Status(ctx context.Context, userID string) (*model.Status, error)
 	UserByUsername(ctx context.Context, username string) (*model.User, error)
+	UsersByIDs(ctx context.Context, ids []string) ([]*model.User, error)
+	SearchUsers(ctx context.Context, term, teamID string, limit int) ([]*model.User, error)
 	TeamsForUser(ctx context.Context, userID string) ([]*model.Team, error)
+	Team(ctx context.Context, teamID string) (*model.Team, error)
 	ChannelsForUser(ctx context.Context, teamID, userID string) ([]*model.Channel, error)
+	Channel(ctx context.Context, channelID string) (*model.Channel, error)
+	SearchChannels(ctx context.Context, teamID, term string) ([]*model.Channel, error)
 	CreateDirectChannel(ctx context.Context, userID1, userID2 string) (*model.Channel, error)
 	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
 	Search(ctx context.Context, teamID, terms string, orSearch bool) (*model.PostList, error)
@@ -86,13 +91,41 @@ func (c *Client) UserByUsername(ctx context.Context, username string) (*model.Us
 	return u, err
 }
 
+func (c *Client) UsersByIDs(ctx context.Context, ids []string) ([]*model.User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	u, _, err := c.mm.GetUsersByIds(ctx, ids)
+	return u, err
+}
+
+func (c *Client) SearchUsers(ctx context.Context, term, teamID string, limit int) ([]*model.User, error) {
+	u, _, err := c.mm.SearchUsers(ctx, &model.UserSearch{Term: term, TeamId: teamID, Limit: limit})
+	return u, err
+}
+
 func (c *Client) TeamsForUser(ctx context.Context, userID string) ([]*model.Team, error) {
 	t, _, err := c.mm.GetTeamsForUser(ctx, userID, "")
 	return t, err
 }
 
+func (c *Client) Team(ctx context.Context, teamID string) (*model.Team, error) {
+	t, _, err := c.mm.GetTeam(ctx, teamID, "")
+	return t, err
+}
+
 func (c *Client) ChannelsForUser(ctx context.Context, teamID, userID string) ([]*model.Channel, error) {
 	ch, _, err := c.mm.GetChannelsForTeamForUser(ctx, teamID, userID, false, "")
+	return ch, err
+}
+
+func (c *Client) Channel(ctx context.Context, channelID string) (*model.Channel, error) {
+	ch, _, err := c.mm.GetChannel(ctx, channelID)
+	return ch, err
+}
+
+func (c *Client) SearchChannels(ctx context.Context, teamID, term string) ([]*model.Channel, error) {
+	ch, _, err := c.mm.SearchChannels(ctx, teamID, &model.ChannelSearch{Term: term})
 	return ch, err
 }
 

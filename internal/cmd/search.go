@@ -2,17 +2,17 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	"github.com/dmitriev/mmrun/internal/output"
+	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
 )
 
 func newSearchCmd(outputMode *string) *cobra.Command {
 	var teamName string
+	var full bool
 	cmd := &cobra.Command{
 		Use:   "search <query>",
 		Short: "Search messages (server-side; supports Mattermost search modifiers)",
@@ -22,53 +22,39 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			team := teamName
-			if team == "" {
-				team = app.defaultTeam
-			}
-			return runSearch(app, strings.Join(args, " "), team, cmd.OutOrStdout())
+			return runSearch(app, strings.Join(args, " "), teamName, full, cmd.OutOrStdout())
 		},
 	}
-	cmd.Flags().StringVar(&teamName, "team", "", "team to search within (defaults to configured default team)")
+	cmd.Flags().StringVar(&teamName, "team", "", "team to search within (defaults to your team if you have only one)")
+	cmd.Flags().BoolVar(&full, "full", false, "show full message text instead of a single-line preview")
 	return cmd
 }
 
-func runSearch(app *appContext, query, teamName string, w io.Writer) error {
+func runSearch(app *appContext, query, teamName string, full bool, w io.Writer) error {
 	ctx := context.Background()
-	if teamName == "" {
-		return fmt.Errorf("no team specified and no default team configured")
-	}
-	teams, err := app.api.TeamsForUser(ctx, app.userID)
+	teamID, resolvedTeam, err := app.resolveTeam(ctx, teamName)
 	if err != nil {
 		return err
-	}
-	var teamID string
-	for _, t := range teams {
-		if t.Name == teamName {
-			teamID = t.Id
-			break
-		}
-	}
-	if teamID == "" {
-		return fmt.Errorf("team %q not found among your memberships", teamName)
 	}
 	pl, err := app.api.Search(ctx, teamID, query, false)
 	if err != nil {
 		return err
 	}
-	res := output.Result{Title: "Search results", Columns: []string{"time", "user_id", "message"}}
-	if pl != nil {
-		for _, id := range pl.Order {
-			p := pl.Posts[id]
-			if p == nil {
-				continue
-			}
-			res.Rows = append(res.Rows, output.Row{
-				"time":    time.UnixMilli(p.CreateAt).Format(time.RFC3339),
-				"user_id": p.UserId,
-				"message": p.Message,
-			})
+	res := renderMessages(ctx, app, "Search results", postsInOrder(pl), resolvedTeam, full)
+	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+}
+
+// postsInOrder returns the posts of a PostList in the server-provided Order
+// (relevance/recency for search), skipping missing entries.
+func postsInOrder(pl *model.PostList) []*model.Post {
+	if pl == nil {
+		return nil
+	}
+	posts := make([]*model.Post, 0, len(pl.Order))
+	for _, id := range pl.Order {
+		if p := pl.Posts[id]; p != nil {
+			posts = append(posts, p)
 		}
 	}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return posts
 }

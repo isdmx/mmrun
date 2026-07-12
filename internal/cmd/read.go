@@ -16,6 +16,7 @@ type readOpts struct {
 	limit  int
 	since  string
 	thread string
+	full   bool
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
@@ -35,6 +36,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().IntVar(&opts.limit, "limit", 50, "number of messages to fetch")
 	cmd.Flags().StringVar(&opts.since, "since", "", "only messages since this time: a duration (e.g. 24h) or RFC3339 timestamp")
 	cmd.Flags().StringVar(&opts.thread, "thread", "", "fetch the thread rooted at this post ID instead of the channel")
+	cmd.Flags().BoolVar(&opts.full, "full", false, "show full message text instead of a single-line preview")
 	return cmd
 }
 
@@ -56,6 +58,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	var pl *model.PostList
 	var err error
 	title := "Messages"
+	permalinkTeam := ""
 
 	switch {
 	case opts.thread != "":
@@ -66,6 +69,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 		if rerr != nil {
 			return rerr
 		}
+		permalinkTeam = permalinkTeamFor(ctx, app, ch)
 		if opts.since != "" {
 			since, perr := parseSince(opts.since)
 			if perr != nil {
@@ -80,15 +84,20 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 		return err
 	}
 
-	res := output.Result{Title: title, Columns: []string{"time", "user_id", "message"}}
-	for _, p := range chronological(pl) {
-		res.Rows = append(res.Rows, output.Row{
-			"time":    time.UnixMilli(p.CreateAt).Format(time.RFC3339),
-			"user_id": p.UserId,
-			"message": p.Message,
-		})
-	}
+	res := renderMessages(ctx, app, title, chronological(pl), permalinkTeam, opts.full)
 	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+}
+
+// permalinkTeamFor returns the team name usable in a permalink for a channel,
+// or "" when the channel has no team (e.g. a direct message).
+func permalinkTeamFor(ctx context.Context, app *appContext, ch *model.Channel) string {
+	if ch == nil || ch.TeamId == "" {
+		return ""
+	}
+	if t, err := app.api.Team(ctx, ch.TeamId); err == nil && t != nil {
+		return t.Name
+	}
+	return ""
 }
 
 // chronological returns the posts of a PostList sorted oldest-first. It is

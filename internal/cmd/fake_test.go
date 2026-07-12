@@ -15,6 +15,7 @@ type fakeAPI struct {
 	userByName *model.User
 	teams      []*model.Team
 	channels   []*model.Channel
+	users      []*model.User
 	posts      *model.PostList
 	thread     *model.PostList
 	created    *model.Post
@@ -46,10 +47,28 @@ func (f *fakeAPI) Status(context.Context, string) (*model.Status, error) { retur
 func (f *fakeAPI) UserByUsername(context.Context, string) (*model.User, error) {
 	return f.userByName, f.err
 }
+func (f *fakeAPI) UsersByIDs(context.Context, []string) ([]*model.User, error) {
+	return f.users, f.err
+}
+func (f *fakeAPI) SearchUsers(context.Context, string, string, int) ([]*model.User, error) {
+	return f.users, f.err
+}
 func (f *fakeAPI) TeamsForUser(context.Context, string) ([]*model.Team, error) {
 	return f.teams, f.err
 }
+func (f *fakeAPI) Team(context.Context, string) (*model.Team, error) {
+	if len(f.teams) > 0 {
+		return f.teams[0], f.err
+	}
+	return nil, f.err
+}
 func (f *fakeAPI) ChannelsForUser(context.Context, string, string) ([]*model.Channel, error) {
+	return f.channels, f.err
+}
+func (f *fakeAPI) Channel(context.Context, string) (*model.Channel, error) {
+	return f.resolved, f.err
+}
+func (f *fakeAPI) SearchChannels(context.Context, string, string) ([]*model.Channel, error) {
 	return f.channels, f.err
 }
 func (f *fakeAPI) CreateDirectChannel(context.Context, string, string) (*model.Channel, error) {
