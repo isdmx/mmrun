@@ -53,7 +53,7 @@ func addThreadListRun(cmd *cobra.Command, outputMode *string) {
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full root message text instead of a single-line preview")
 }
 
-var threadColumns = []string{"last_reply", "channel", "user", "replies", "unread", "post_id", "permalink", "message"}
+var threadColumns = []string{"last_reply", "channel", "user", "replies", "unread", "files", "post_id", "permalink", "message"}
 
 func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 	ctx := context.Background()
@@ -101,6 +101,7 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 				"user":       user,
 				"replies":    strconv.FormatInt(tr.ReplyCount, 10),
 				"unread":     strconv.FormatInt(tr.UnreadReplies, 10),
+				"files":      fileSummary(p),
 				"post_id":    p.Id,
 				"message":    msg,
 			}

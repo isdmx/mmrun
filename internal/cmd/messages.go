@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,7 +14,7 @@ import (
 
 const maxMessagePreview = 140
 
-var messageColumns = []string{"time", "channel", "user", "root_id", "post_id", "permalink", "message"}
+var messageColumns = []string{"time", "channel", "user", "files", "root_id", "post_id", "permalink", "message"}
 
 // renderMessages builds a message Result from posts in the given order. It
 // resolves user IDs to usernames (one batched call), channel IDs to readable
@@ -41,6 +43,7 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 			"time":    time.UnixMilli(p.CreateAt).Format(time.RFC3339),
 			"channel": channelLabel(ctx, app, p.ChannelId, channelNames),
 			"user":    user,
+			"files":   fileSummary(p),
 			"root_id": p.RootId,
 			"post_id": p.Id,
 			"message": msg,
@@ -112,4 +115,24 @@ func preview(s string, maxLen int) string {
 // serverBase returns the server URL without a trailing slash, for permalinks.
 func serverBase(app *appContext) string {
 	return strings.TrimRight(app.api.ServerURL(), "/")
+}
+
+// fileSummary describes a post's attachments: the count plus filenames when the
+// post carries file metadata, the count alone otherwise, or "" when there are
+// none.
+func fileSummary(p *model.Post) string {
+	if p == nil {
+		return ""
+	}
+	if p.Metadata != nil && len(p.Metadata.Files) > 0 {
+		names := make([]string, 0, len(p.Metadata.Files))
+		for _, fi := range p.Metadata.Files {
+			names = append(names, fi.Name)
+		}
+		return fmt.Sprintf("%d: %s", len(names), strings.Join(names, ", "))
+	}
+	if n := len(p.FileIds); n > 0 {
+		return strconv.Itoa(n)
+	}
+	return ""
 }

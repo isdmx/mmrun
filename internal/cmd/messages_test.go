@@ -54,3 +54,19 @@ func TestPreview_CollapsesAndTruncates(t *testing.T) {
 		t.Errorf("preview truncate = %q", trunc)
 	}
 }
+
+func TestFileSummary(t *testing.T) {
+	if got := fileSummary(&model.Post{}); got != "" {
+		t.Errorf("no files = %q, want empty", got)
+	}
+	if got := fileSummary(&model.Post{FileIds: []string{"a", "b"}}); got != "2" {
+		t.Errorf("count only = %q, want 2", got)
+	}
+	withMeta := &model.Post{
+		FileIds:  []string{"a", "b"},
+		Metadata: &model.PostMetadata{Files: []*model.FileInfo{{Name: "one.txt"}, {Name: "two.pdf"}}},
+	}
+	if got := fileSummary(withMeta); got != "2: one.txt, two.pdf" {
+		t.Errorf("with names = %q, want %q", got, "2: one.txt, two.pdf")
+	}
+}
