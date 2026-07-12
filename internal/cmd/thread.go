@@ -13,10 +13,11 @@ import (
 )
 
 type threadListOpts struct {
-	team   string
-	unread bool
-	limit  int
-	full   bool
+	team    string
+	unread  bool
+	limit   int
+	full    bool
+	columns string
 }
 
 func newThreadCmd(outputMode *string) *cobra.Command {
@@ -49,8 +50,9 @@ func addThreadListRun(cmd *cobra.Command, outputMode *string) {
 	}
 	cmd.Flags().StringVar(&opts.team, "team", "", "team to list threads for (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&opts.unread, "unread", false, "only threads with unread replies")
-	cmd.Flags().IntVar(&opts.limit, "limit", 30, "maximum number of threads to fetch")
+	cmd.Flags().IntVar(&opts.limit, "limit", 0, "maximum number of threads to fetch (default from config or 50)")
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full root message text instead of a single-line preview")
+	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. user,replies,message)")
 }
 
 var threadColumns = []string{"last_reply", "channel", "user", "replies", "unread", "files", "post_id", "permalink", "message"}
@@ -61,7 +63,15 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	threads, err := app.api.UserThreads(ctx, app.userID, teamID, opts.unread, opts.limit)
+	limit := opts.limit
+	if limit <= 0 {
+		limit = app.defaultLimit
+	}
+	cols, err := resolveColumns(threadColumns, opts.columns)
+	if err != nil {
+		return err
+	}
+	threads, err := app.api.UserThreads(ctx, app.userID, teamID, opts.unread, limit)
 	if err != nil {
 		return err
 	}
@@ -80,7 +90,7 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 	clean := app.outputMode != "json" && !opts.full
 	server := serverBase(app)
 
-	res := output.Result{Title: "Followed threads", Columns: threadColumns}
+	res := output.Result{Title: "Followed threads", Columns: cols}
 	if threads != nil {
 		for _, tr := range threads.Threads {
 			if tr == nil || tr.Post == nil {
@@ -93,7 +103,7 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 			}
 			msg := p.Message
 			if clean {
-				msg = preview(msg, maxMessagePreview)
+				msg = preview(msg, app.previewLen)
 			}
 			row := output.Row{
 				"last_reply": time.UnixMilli(tr.LastReplyAt).Format(time.RFC3339),

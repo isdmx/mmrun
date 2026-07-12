@@ -12,8 +12,6 @@ import (
 	"github.com/isdmx/mmrun/internal/output"
 )
 
-const maxMessagePreview = 140
-
 var messageColumns = []string{"time", "channel", "user", "files", "root_id", "post_id", "permalink", "message"}
 
 // renderMessages builds a message Result from posts in the given order. It
