@@ -21,6 +21,7 @@ type fakeAPI struct {
 	thread     *model.PostList
 	threads    *model.Threads
 	created    *model.Post
+	lastPost   *model.Post
 	resolved   *model.Channel
 	dmChannel  *model.Channel
 	fileData   []byte
@@ -85,7 +86,8 @@ func (f *fakeAPI) CreateDirectChannel(context.Context, string, string) (*model.C
 	return f.dmChannel, f.err
 }
 
-func (f *fakeAPI) CreatePost(context.Context, *model.Post) (*model.Post, error) {
+func (f *fakeAPI) CreatePost(_ context.Context, p *model.Post) (*model.Post, error) {
+	f.lastPost = p
 	return f.created, f.err
 }
 

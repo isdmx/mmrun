@@ -3,8 +3,6 @@ package cmd
 import (
 	"context"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
@@ -14,7 +12,7 @@ import (
 
 type postOpts struct {
 	replyTo string
-	file    string
+	files   []string
 	team    string
 }
 
@@ -33,7 +31,7 @@ func newPostCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&opts.replyTo, "reply-to", "", "root post ID to reply in-thread")
-	cmd.Flags().StringVar(&opts.file, "file", "", "path to a file to attach")
+	cmd.Flags().StringArrayVar(&opts.files, "file", nil, "path to a file to attach (repeatable)")
 	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	return cmd
 }
@@ -44,22 +42,11 @@ func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Wr
 	if err != nil {
 		return err
 	}
-	post := &model.Post{ChannelId: ch.Id, Message: message, RootId: opts.replyTo}
-
-	if opts.file != "" {
-		data, err := os.ReadFile(opts.file)
-		if err != nil {
-			return err
-		}
-		resp, err := app.api.UploadFile(ctx, data, ch.Id, filepath.Base(opts.file))
-		if err != nil {
-			return err
-		}
-		for _, fi := range resp.FileInfos {
-			post.FileIds = append(post.FileIds, fi.Id)
-		}
+	fileIDs, err := uploadFiles(ctx, app, ch.Id, opts.files)
+	if err != nil {
+		return err
 	}
-
+	post := &model.Post{ChannelId: ch.Id, Message: message, RootId: opts.replyTo, FileIds: fileIDs}
 	created, err := app.api.CreatePost(ctx, post)
 	if err != nil {
 		return err

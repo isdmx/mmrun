@@ -47,15 +47,15 @@ func newFileCmd(outputMode *string) *cobra.Command {
 	var message string
 	var uploadTeam string
 	upload := &cobra.Command{
-		Use:   "upload <channel> <path>",
-		Short: "Upload a file, optionally with a message",
-		Args:  cobra.ExactArgs(2),
+		Use:   "upload <channel> <path>...",
+		Short: "Upload one or more files, optionally with a message",
+		Args:  cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
 			}
-			return runFileUpload(app, args[0], args[1], message, uploadTeam, cmd.OutOrStdout())
+			return runFileUpload(app, args[0], args[1:], message, uploadTeam, cmd.OutOrStdout())
 		},
 	}
 	upload.Flags().StringVar(&message, "message", "", "message to accompany the upload")
@@ -110,27 +110,40 @@ func fileInfosFor(ctx context.Context, app *appContext, id string) ([]*model.Fil
 	return nil, nil
 }
 
-func runFileUpload(app *appContext, channelRef, path, message, team string, w io.Writer) error {
+func runFileUpload(app *appContext, channelRef string, paths []string, message, team string, w io.Writer) error {
 	ctx := context.Background()
 	ch, err := app.resolveChannel(ctx, channelRef, team)
 	if err != nil {
 		return err
 	}
-	data, err := os.ReadFile(path)
+	fileIDs, err := uploadFiles(ctx, app, ch.Id, paths)
 	if err != nil {
 		return err
 	}
-	resp, err := app.api.UploadFile(ctx, data, ch.Id, filepath.Base(path))
-	if err != nil {
-		return err
-	}
-	post := &model.Post{ChannelId: ch.Id, Message: message}
-	for _, fi := range resp.FileInfos {
-		post.FileIds = append(post.FileIds, fi.Id)
-	}
+	post := &model.Post{ChannelId: ch.Id, Message: message, FileIds: fileIDs}
 	created, err := app.api.CreatePost(ctx, post)
 	if err != nil {
 		return err
 	}
 	return output.New(app.outputMode, stdoutFile(w)).Render(w, output.Result{Text: created.Id})
+}
+
+// uploadFiles uploads each path to the channel and returns the resulting file
+// IDs, ready to attach to a single post.
+func uploadFiles(ctx context.Context, app *appContext, channelID string, paths []string) ([]string, error) {
+	var ids []string
+	for _, p := range paths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := app.api.UploadFile(ctx, data, channelID, filepath.Base(p))
+		if err != nil {
+			return nil, err
+		}
+		for _, fi := range resp.FileInfos {
+			ids = append(ids, fi.Id)
+		}
+	}
+	return ids, nil
 }
