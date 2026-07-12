@@ -7,10 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/isdmx/mmrun/internal/config"
-	"github.com/isdmx/mmrun/internal/output"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/config"
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newFileCmd(outputMode *string) *cobra.Command {
@@ -73,7 +74,7 @@ func runFileDownload(app *appContext, id, dir string) ([]string, error) {
 	if len(infos) == 0 {
 		return nil, fmt.Errorf("%q has no downloadable files (not a post with attachments or a file ID)", id)
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nil, err
 	}
 	var written []string

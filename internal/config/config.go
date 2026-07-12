@@ -1,3 +1,5 @@
+// Package config resolves XDG-compliant file locations and loads/saves the
+// TOML preferences file.
 package config
 
 import (
@@ -67,13 +69,16 @@ func Load() (*Config, error) {
 // Save writes config.toml, creating parent directories as needed.
 func Save(c *Config) error {
 	path := Paths().ConfigFile
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return err
 	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return toml.NewEncoder(f).Encode(c)
+	if err := toml.NewEncoder(f).Encode(c); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }

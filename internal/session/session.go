@@ -1,3 +1,5 @@
+// Package session persists the authenticated session (server, token, user) to
+// an XDG state file with 0600 permissions.
 package session
 
 import (

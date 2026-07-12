@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/isdmx/mmrun/internal/output"
 	"github.com/mattermost/mattermost/server/public/model"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 const maxMessagePreview = 140
@@ -98,12 +99,12 @@ func channelLabel(ctx context.Context, app *appContext, id string, cache map[str
 }
 
 // preview collapses all runs of whitespace (including newlines and tabs) into
-// single spaces and truncates to max runes with an ellipsis.
-func preview(s string, max int) string {
+// single spaces and truncates to maxLen runes with an ellipsis.
+func preview(s string, maxLen int) string {
 	s = strings.Join(strings.Fields(s), " ")
 	r := []rune(s)
-	if len(r) > max {
-		return string(r[:max]) + "…"
+	if len(r) > maxLen {
+		return string(r[:maxLen]) + "…"
 	}
 	return s
 }

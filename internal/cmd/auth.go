@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"syscall"
 	"time"
+
+	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/config"
 	"github.com/isdmx/mmrun/internal/output"
 	"github.com/isdmx/mmrun/internal/session"
-	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 func newAuthCmd(outputMode *string) *cobra.Command {
@@ -39,7 +39,7 @@ func promptLine(prompt string) (string, error) {
 
 func promptSecret(prompt string) (string, error) {
 	fmt.Fprint(os.Stderr, prompt)
-	b, err := term.ReadPassword(int(syscall.Stdin))
+	b, err := term.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Fprintln(os.Stderr)
 	return strings.TrimSpace(string(b)), err
 }

@@ -1,3 +1,5 @@
+// Package output renders command results as human-readable text, AI-friendly
+// plain text, or JSON.
 package output
 
 import (

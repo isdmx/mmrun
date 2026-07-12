@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"os"
 	"testing"
 )
@@ -33,7 +34,7 @@ func TestSaveLoad_RoundTripAndPerms(t *testing.T) {
 
 func TestLoad_MissingReturnsErrNoSession(t *testing.T) {
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
-	if _, err := Load(); err != ErrNoSession {
+	if _, err := Load(); !errors.Is(err, ErrNoSession) {
 		t.Errorf("err = %v, want ErrNoSession", err)
 	}
 }
@@ -44,7 +45,7 @@ func TestClear(t *testing.T) {
 	if err := Clear(); err != nil {
 		t.Fatalf("Clear: %v", err)
 	}
-	if _, err := Load(); err != ErrNoSession {
+	if _, err := Load(); !errors.Is(err, ErrNoSession) {
 		t.Errorf("after clear err = %v, want ErrNoSession", err)
 	}
 }

@@ -1,0 +1,89 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - asasalint
+    - bodyclose
+    - contextcheck
+    - copyloopvar
+    - dogsled
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - gocyclo
+    - godot
+    - gosec
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - reassign
+    - revive
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+
+  settings:
+    funlen:
+      lines: 100
+      statements: 60
+    gocyclo:
+      min-complexity: 20
+    gocognit:
+      min-complexity: 30
+    exhaustive:
+      default-signifies-exhaustive: true
+    gosec:
+      excludes:
+        # Reading user-provided file paths is the whole point of a CLI.
+        - G304
+        # Downloaded attachments are written 0644 on purpose.
+        - G306
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+
+  exclusions:
+    generated: lax
+    rules:
+      # Tests may be long, use fixtures, and don't need the same rigor.
+      - path: _test\.go
+        linters:
+          - funlen
+          - gocyclo
+          - gocognit
+          - dupl
+          - gosec
+          - contextcheck
+          - errcheck
+      # cobra RunE callbacks have a fixed (cmd, args) signature; unused ones are fine.
+      - linters: [revive]
+        text: "unused-parameter"
+      # Client wrapper methods are documented by the client.API interface they implement.
+      - path: internal/client/client\.go
+        linters: [revive]
+        text: "exported:"
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/isdmx/mmrun

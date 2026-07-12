@@ -13,30 +13,34 @@ import (
 // ssoLogin opens the browser to the provider's OAuth flow and captures the
 // token via a localhost redirect listener.
 func ssoLogin(ctx context.Context, serverURL, provider string) (string, error) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	lc := &net.ListenConfig{}
+	ln, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", err
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	tokenCh := make(chan string, 1)
-	srv := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tok := r.URL.Query().Get("token")
-		if tok == "" {
-			tok = r.Header.Get("Token")
-		}
-		fmt.Fprintln(w, "Login complete. You may close this window.")
-		select {
-		case tokenCh <- tok:
-		default:
-		}
-	})}
-	go srv.Serve(ln)
-	defer srv.Close()
+	srv := &http.Server{
+		ReadHeaderTimeout: 10 * time.Second,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tok := r.URL.Query().Get("token")
+			if tok == "" {
+				tok = r.Header.Get("Token")
+			}
+			_, _ = fmt.Fprintln(w, "Login complete. You may close this window.")
+			select {
+			case tokenCh <- tok:
+			default:
+			}
+		}),
+	}
+	go func() { _ = srv.Serve(ln) }()
+	defer func() { _ = srv.Close() }()
 
 	redirect := fmt.Sprintf("http://%s/", ln.Addr().String())
 	authURL := fmt.Sprintf("%s/oauth/%s/login?redirect_to=%s", serverURL, provider, redirect)
-	if err := openBrowser(authURL); err != nil {
+	if err := openBrowser(ctx, authURL); err != nil {
 		fmt.Printf("Open this URL to continue login:\n%s\n", authURL)
 	}
 
@@ -53,13 +57,17 @@ func ssoLogin(ctx context.Context, serverURL, provider string) (string, error) {
 	}
 }
 
-func openBrowser(url string) error {
+func openBrowser(ctx context.Context, url string) error {
+	var name string
+	var args []string
 	switch runtime.GOOS {
 	case "darwin":
-		return exec.Command("open", url).Start()
+		name, args = "open", []string{url}
 	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		name, args = "rundll32", []string{"url.dll,FileProtocolHandler", url}
 	default:
-		return exec.Command("xdg-open", url).Start()
+		name, args = "xdg-open", []string{url}
 	}
+	//nolint:gosec // G204: launches the OS URL handler for an interactive SSO login
+	return exec.CommandContext(ctx, name, args...).Start()
 }

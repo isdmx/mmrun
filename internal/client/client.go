@@ -1,3 +1,6 @@
+// Package client is the sole boundary to the Mattermost server API. It wraps
+// model.Client4 behind the API interface so commands can be tested against a
+// fake.
 package client
 
 import (
