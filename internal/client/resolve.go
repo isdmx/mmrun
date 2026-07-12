@@ -39,7 +39,12 @@ func (c *Client) ResolveChannel(ctx context.Context, ref, defaultTeam, selfUserI
 		teamName, chanName = ref[:i], ref[i+1:]
 	}
 	if teamName == "" {
-		return nil, fmt.Errorf("no team specified for channel %q and no default team set", ref)
+		// No team given and no default: fall back to the user's sole team.
+		name, err := c.soleTeamName(ctx, selfUserID)
+		if err != nil {
+			return nil, err
+		}
+		teamName = name
 	}
 
 	team, _, err := c.mm.GetTeamByName(ctx, teamName, "")
@@ -51,4 +56,26 @@ func (c *Client) ResolveChannel(ctx context.Context, ref, defaultTeam, selfUserI
 		return nil, fmt.Errorf("resolve channel %q: %w", chanName, err)
 	}
 	return ch, nil
+}
+
+// soleTeamName returns the name of the only team the user belongs to. It errors
+// if the user is in zero or multiple teams (so the caller must qualify the
+// channel as "team/channel").
+func (c *Client) soleTeamName(ctx context.Context, selfUserID string) (string, error) {
+	teams, _, err := c.mm.GetTeamsForUser(ctx, selfUserID, "")
+	if err != nil {
+		return "", fmt.Errorf("determine default team: %w", err)
+	}
+	switch len(teams) {
+	case 0:
+		return "", fmt.Errorf("you are not a member of any team")
+	case 1:
+		return teams[0].Name, nil
+	default:
+		names := make([]string, 0, len(teams))
+		for _, t := range teams {
+			names = append(names, t.Name)
+		}
+		return "", fmt.Errorf("multiple teams; qualify the channel as team/channel (teams: %s)", strings.Join(names, ", "))
+	}
 }
