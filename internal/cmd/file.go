@@ -44,6 +44,7 @@ func newFileCmd(outputMode *string) *cobra.Command {
 	download.Flags().StringVar(&outDir, "out", "", "output directory (defaults to XDG download dir)")
 
 	var message string
+	var uploadTeam string
 	upload := &cobra.Command{
 		Use:   "upload <channel> <path>",
 		Short: "Upload a file, optionally with a message",
@@ -53,10 +54,11 @@ func newFileCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runFileUpload(app, args[0], args[1], message, cmd.OutOrStdout())
+			return runFileUpload(app, args[0], args[1], message, uploadTeam, cmd.OutOrStdout())
 		},
 	}
 	upload.Flags().StringVar(&message, "message", "", "message to accompany the upload")
+	upload.Flags().StringVar(&uploadTeam, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 
 	file.AddCommand(download, upload)
 	return file
@@ -107,9 +109,9 @@ func fileInfosFor(ctx context.Context, app *appContext, id string) ([]*model.Fil
 	return nil, nil
 }
 
-func runFileUpload(app *appContext, channelRef, path, message string, w io.Writer) error {
+func runFileUpload(app *appContext, channelRef, path, message, team string, w io.Writer) error {
 	ctx := context.Background()
-	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam, app.userID)
+	ch, err := app.resolveChannel(ctx, channelRef, team)
 	if err != nil {
 		return err
 	}

@@ -14,6 +14,7 @@ import (
 type postOpts struct {
 	replyTo string
 	file    string
+	team    string
 }
 
 func newPostCmd(outputMode *string) *cobra.Command {
@@ -32,12 +33,13 @@ func newPostCmd(outputMode *string) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&opts.replyTo, "reply-to", "", "root post ID to reply in-thread")
 	cmd.Flags().StringVar(&opts.file, "file", "", "path to a file to attach")
+	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	return cmd
 }
 
 func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Writer) error {
 	ctx := context.Background()
-	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam, app.userID)
+	ch, err := app.resolveChannel(ctx, channelRef, opts.team)
 	if err != nil {
 		return err
 	}

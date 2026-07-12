@@ -14,7 +14,8 @@ import (
 )
 
 func newTailCmd(outputMode *string) *cobra.Command {
-	return &cobra.Command{
+	var team string
+	cmd := &cobra.Command{
 		Use:   "tail <channel>",
 		Short: "Stream new messages from a channel until interrupted",
 		Args:  cobra.ExactArgs(1),
@@ -25,9 +26,11 @@ func newTailCmd(outputMode *string) *cobra.Command {
 			}
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 			defer stop()
-			return runTail(ctx, app, args[0], cmd.OutOrStdout())
+			return runTail(ctx, app, args[0], team, cmd.OutOrStdout())
 		},
 	}
+	cmd.Flags().StringVar(&team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
+	return cmd
 }
 
 // postedEventToRow converts a websocket event into an output Row, returning
@@ -54,8 +57,8 @@ func postedEventToRow(channelID, event string, data map[string]any) (output.Row,
 	}, true
 }
 
-func runTail(ctx context.Context, app *appContext, channelRef string, w io.Writer) error {
-	ch, err := app.api.ResolveChannel(ctx, channelRef, app.defaultTeam, app.userID)
+func runTail(ctx context.Context, app *appContext, channelRef, team string, w io.Writer) error {
+	ch, err := app.resolveChannel(ctx, channelRef, team)
 	if err != nil {
 		return err
 	}

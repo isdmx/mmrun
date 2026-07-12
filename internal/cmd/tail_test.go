@@ -48,7 +48,7 @@ func TestRunTail_RendersStreamedPost(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var buf bytes.Buffer
 	done := make(chan error, 1)
-	go func() { done <- runTail(ctx, app, "eng/general", &buf) }()
+	go func() { done <- runTail(ctx, app, "eng/general", "", &buf) }()
 
 	time.Sleep(50 * time.Millisecond)
 	cancel()
@@ -63,7 +63,7 @@ func TestRunTail_SurfacesStreamError(t *testing.T) {
 	f := &fakeAPI{resolved: &model.Channel{Id: "c1"}, streamErr: context.DeadlineExceeded}
 	app := &appContext{api: f, outputMode: "ai"}
 	var buf bytes.Buffer
-	if err := runTail(context.Background(), app, "eng/general", &buf); err == nil {
+	if err := runTail(context.Background(), app, "eng/general", "", &buf); err == nil {
 		t.Error("expected StreamPosts error to be surfaced")
 	}
 }

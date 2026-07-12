@@ -10,6 +10,7 @@ import (
 	"github.com/dmitriev/mmrun/internal/client"
 	"github.com/dmitriev/mmrun/internal/config"
 	"github.com/dmitriev/mmrun/internal/session"
+	"github.com/mattermost/mattermost/server/public/model"
 )
 
 // appContext carries shared dependencies into command RunE functions.
@@ -50,6 +51,17 @@ func stdoutFile(w io.Writer) *os.File {
 		return f
 	}
 	return os.Stdout
+}
+
+// resolveChannel resolves a channel reference, using teamOverride (from a
+// command's --team flag) as the default team when set, otherwise the configured
+// default team. A bare channel name still falls back to the user's sole team.
+func (a *appContext) resolveChannel(ctx context.Context, ref, teamOverride string) (*model.Channel, error) {
+	team := teamOverride
+	if team == "" {
+		team = a.defaultTeam
+	}
+	return a.api.ResolveChannel(ctx, ref, team, a.userID)
 }
 
 // resolveTeam maps a team name to its ID among the user's memberships. When
