@@ -75,3 +75,99 @@ func TestResolveChannel_DirectMessage(t *testing.T) {
 		t.Errorf("channel id = %q, want dm1", ch.Id)
 	}
 }
+
+func TestResolveChannel_ByEmail(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v4/users/email/alice@example.com":
+			_ = json.NewEncoder(w).Encode(&model.User{Id: "u2", Username: "alice"})
+		case "/api/v4/channels/direct":
+			_ = json.NewEncoder(w).Encode(&model.Channel{Id: "dm1", Type: model.ChannelTypeDirect})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := NewWithToken(srv.URL, "tok")
+	ch, err := c.ResolveChannel(context.Background(), "alice@example.com", "", "u1")
+	if err != nil {
+		t.Fatalf("email resolve: %v", err)
+	}
+	if ch.Id != "dm1" {
+		t.Errorf("channel id = %q, want dm1", ch.Id)
+	}
+}
+
+func TestResolveChannel_TildeChannel(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v4/users/u1/teams":
+			_ = json.NewEncoder(w).Encode([]*model.Team{{Id: "t1", Name: "eng"}})
+		case "/api/v4/teams/t1/channels/name/general":
+			_ = json.NewEncoder(w).Encode(&model.Channel{Id: "c1", Name: "general"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := NewWithToken(srv.URL, "tok")
+	ch, err := c.ResolveChannel(context.Background(), "~general", "", "u1")
+	if err != nil {
+		t.Fatalf("tilde resolve: %v", err)
+	}
+	if ch.Id != "c1" {
+		t.Errorf("channel id = %q, want c1", ch.Id)
+	}
+}
+
+func TestResolveChannel_IDFallbackToUser(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v4/channels/ch266charidXXXXXXXXXXXXXXX":
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(&model.AppError{StatusCode: 404})
+		case "/api/v4/users/ch266charidXXXXXXXXXXXXXXX":
+			_ = json.NewEncoder(w).Encode(&model.User{Id: "u9", Username: "target"})
+		case "/api/v4/channels/direct":
+			_ = json.NewEncoder(w).Encode(&model.Channel{Id: "dm1", Type: model.ChannelTypeDirect})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := NewWithToken(srv.URL, "tok")
+	ch, err := c.ResolveChannel(context.Background(), "ch266charidXXXXXXXXXXXXXXX", "", "u1")
+	if err != nil {
+		t.Fatalf("id fallback: %v", err)
+	}
+	if ch.Id != "dm1" {
+		t.Errorf("channel id = %q, want dm1", ch.Id)
+	}
+}
+
+func TestResolveChannel_BareWordFallback(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v4/teams/name/eng":
+			_ = json.NewEncoder(w).Encode(&model.Team{Id: "t1", Name: "eng"})
+		case "/api/v4/teams/t1/channels/name/nope":
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(&model.AppError{StatusCode: 404})
+		case "/api/v4/users/username/nope":
+			_ = json.NewEncoder(w).Encode(&model.User{Id: "u2", Username: "nope"})
+		case "/api/v4/channels/direct":
+			_ = json.NewEncoder(w).Encode(&model.Channel{Id: "dm1", Type: model.ChannelTypeDirect})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := NewWithToken(srv.URL, "tok")
+	ch, err := c.ResolveChannel(context.Background(), "nope", "eng", "u1")
+	if err != nil {
+		t.Fatalf("bare word fallback: %v", err)
+	}
+	if ch.Id != "dm1" {
+		t.Errorf("channel id = %q, want dm1", ch.Id)
+	}
+}
