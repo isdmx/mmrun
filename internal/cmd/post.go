@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -41,6 +42,14 @@ func newPostCmd(outputMode *string) *cobra.Command {
 
 func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Writer) error {
 	ctx := context.Background()
+	msg := message
+	if msg == "-" {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return err
+		}
+		msg = string(data)
+	}
 	ch, err := app.resolveChannel(ctx, channelRef, opts.team)
 	if err != nil {
 		return err
@@ -53,7 +62,7 @@ func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Wr
 				{"field": "channel", "value": ch.Id},
 				{"field": "reply_to", "value": opts.replyTo},
 				{"field": "files", "value": strings.Join(opts.files, ", ")},
-				{"field": "message", "value": message},
+				{"field": "message", "value": msg},
 			},
 		}
 		return app.render(w, res)
@@ -62,7 +71,7 @@ func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Wr
 	if err != nil {
 		return err
 	}
-	post := &model.Post{ChannelId: ch.Id, Message: message, RootId: opts.replyTo, FileIds: fileIDs}
+	post := &model.Post{ChannelId: ch.Id, Message: msg, RootId: opts.replyTo, FileIds: fileIDs}
 	created, err := app.api.CreatePost(ctx, post)
 	if err != nil {
 		return err
