@@ -8,3 +8,4 @@ mmrun
 /bin/
 /dist/
 coverage.out
+/demo/
