@@ -5,6 +5,7 @@ package client
 
 import (
 	"context"
+	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
 )
@@ -20,6 +21,7 @@ type API interface {
 	Me(ctx context.Context) (*model.User, error)
 	Status(ctx context.Context, userID string) (*model.Status, error)
 	UserByUsername(ctx context.Context, username string) (*model.User, error)
+	UserByEmail(ctx context.Context, email string) (*model.User, error)
 	UsersByIDs(ctx context.Context, ids []string) ([]*model.User, error)
 	SearchUsers(ctx context.Context, term, teamID string, limit int) ([]*model.User, error)
 	TeamsForUser(ctx context.Context, userID string) ([]*model.Team, error)
@@ -38,6 +40,13 @@ type API interface {
 	GetFile(ctx context.Context, fileID string) ([]byte, error)
 	FileInfo(ctx context.Context, fileID string) (*model.FileInfo, error)
 	FileInfosForPost(ctx context.Context, postID string) ([]*model.FileInfo, error)
+	ViewChannel(ctx context.Context, userID, channelID string) error
+	UpdateThreadRead(ctx context.Context, userID, teamID, threadID string) error
+	SaveReaction(ctx context.Context, postID, userID, emojiName string) error
+	DeleteReaction(ctx context.Context, postID, userID, emojiName string) error
+	ReactionsForPost(ctx context.Context, postID string) ([]*model.Reaction, error)
+	PatchPost(ctx context.Context, postID, msg string) (*model.Post, error)
+	DeletePost(ctx context.Context, postID string) error
 	ServerURL() string
 	ResolveChannel(ctx context.Context, ref, defaultTeam, selfUserID string) (*model.Channel, error)
 	StreamPosts(ctx context.Context) (<-chan WSEvent, <-chan error, error)
@@ -92,6 +101,11 @@ func (c *Client) Status(ctx context.Context, userID string) (*model.Status, erro
 
 func (c *Client) UserByUsername(ctx context.Context, username string) (*model.User, error) {
 	u, _, err := c.mm.GetUserByUsername(ctx, username, "")
+	return u, err
+}
+
+func (c *Client) UserByEmail(ctx context.Context, email string) (*model.User, error) {
+	u, _, err := c.mm.GetUserByEmail(ctx, email, "")
 	return u, err
 }
 
@@ -192,4 +206,44 @@ func (c *Client) FileInfo(ctx context.Context, fileID string) (*model.FileInfo, 
 func (c *Client) FileInfosForPost(ctx context.Context, postID string) ([]*model.FileInfo, error) {
 	fi, _, err := c.mm.GetFileInfosForPost(ctx, postID, "")
 	return fi, err
+}
+
+func (c *Client) ViewChannel(ctx context.Context, userID, channelID string) error {
+	_, _, err := c.mm.ViewChannel(ctx, userID, &model.ChannelView{
+		ChannelId:     channelID,
+		PrevChannelId: channelID,
+	})
+	return err
+}
+
+func (c *Client) UpdateThreadRead(ctx context.Context, userID, teamID, threadID string) error {
+	_, _, err := c.mm.UpdateThreadReadForUser(ctx, userID, teamID, threadID, time.Now().UnixMilli())
+	return err
+}
+
+func (c *Client) SaveReaction(ctx context.Context, postID, userID, emojiName string) error {
+	r := &model.Reaction{UserId: userID, PostId: postID, EmojiName: emojiName}
+	_, _, err := c.mm.SaveReaction(ctx, r)
+	return err
+}
+
+func (c *Client) DeleteReaction(ctx context.Context, postID, userID, emojiName string) error {
+	r := &model.Reaction{UserId: userID, PostId: postID, EmojiName: emojiName}
+	_, err := c.mm.DeleteReaction(ctx, r)
+	return err
+}
+
+func (c *Client) ReactionsForPost(ctx context.Context, postID string) ([]*model.Reaction, error) {
+	rr, _, err := c.mm.GetReactions(ctx, postID)
+	return rr, err
+}
+
+func (c *Client) PatchPost(ctx context.Context, postID, msg string) (*model.Post, error) {
+	p, _, err := c.mm.PatchPost(ctx, postID, &model.PostPatch{Message: &msg})
+	return p, err
+}
+
+func (c *Client) DeletePost(ctx context.Context, postID string) error {
+	_, err := c.mm.DeletePost(ctx, postID)
+	return err
 }

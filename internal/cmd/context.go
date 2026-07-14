@@ -43,12 +43,23 @@ func requireSession(outputMode string) (*appContext, error) {
 	if (outputMode == "" || outputMode == "auto") && cfg.OutputMode != "" {
 		outputMode = cfg.OutputMode
 	}
+	cl := client.NewWithToken(sess.ServerURL, sess.Token)
+
+	username := sess.Username
+	if username == "" {
+		if u, uerr := cl.Me(context.Background()); uerr == nil && u != nil {
+			username = u.Username
+			sess.Username = username
+			_ = session.Save(sess)
+		}
+	}
+
 	return &appContext{
-		api:            client.NewWithToken(sess.ServerURL, sess.Token),
+		api:            cl,
 		outputMode:     outputMode,
 		defaultTeam:    cfg.DefaultTeam,
 		userID:         sess.UserID,
-		username:       sess.Username,
+		username:       username,
 		color:          cfg.Color(),
 		previewLen:     cfg.PreviewLen(),
 		defaultLimit:   cfg.DefaultLimit(),

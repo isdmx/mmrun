@@ -8,6 +8,26 @@ import (
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
+func TestThreadRead_MarkRead(t *testing.T) {
+	fake := &fakeAPI{
+		teams: []*model.Team{{Id: "t1", Name: "eng"}},
+		thread: &model.PostList{
+			Order: []string{"p1"},
+			Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "root", UserId: "u2", ChannelId: "c1", CreateAt: 1000}},
+		},
+		resolved: &model.Channel{Id: "c1", Name: "general", TeamId: "t1", Type: model.ChannelTypeOpen},
+		users:    []*model.User{{Id: "u2", Username: "bob"}},
+	}
+	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runThreadRead(app, "p1", true, &buf); err != nil {
+		t.Fatalf("thread read mark-read: %v", err)
+	}
+	if fake.readThread != "p1" {
+		t.Errorf("UpdateThreadRead called with %q, want p1", fake.readThread)
+	}
+}
+
 func TestThreadList_ColumnsFilter(t *testing.T) {
 	th := &model.Threads{Threads: []*model.ThreadResponse{
 		{PostId: "p1", ReplyCount: 2, Post: &model.Post{Id: "p1", Message: "root", UserId: "u2", ChannelId: "c1"}},

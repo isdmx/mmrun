@@ -66,19 +66,27 @@ mmrun tail incidents
 | `channel` / `channel list` | List channels (`--type public\|private\|dm\|group\|all`) |
 | `channel search <term>` | Find channels by name, including ones you have not joined |
 | `user search <term>` | Find users by name/username |
-| `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--full`, `--columns`) |
-| `post <channel> <msg>` | Post a message (`--reply-to <id>`, repeatable `--file <path>`, `--dry-run`) |
+| `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--full`, `--columns`, `--mark-read`) |
+| `post <channel> <msg>` | Post a message; use `-` to read from stdin (`--reply-to <id>`, repeatable `--file <path>`, `--dry-run`) |
 | `tail <channel>` | Stream new messages live until interrupted |
 | `search <query>` | Server-side message search (`--team`, `--full`, `--columns`) |
 | `thread` / `thread list` | List followed threads (`--unread`, `--limit`, `--columns`) |
+| `thread read <id> --mark-read` | Read a thread, optionally mark it read |
+| `react add <post-id> <emoji>` | Add a reaction |
+| `react remove <post-id> <emoji> --yes` | Remove your reaction (requires `--yes`) |
+| `edit edit <post-id> <msg>` | Edit a post's text |
+| `edit delete <post-id> --yes` | Delete a post (requires `--yes`) |
+| `mentions [--team] [--limit]` | Search posts that mention you |
+| `mark-read <id> [--type]` | Mark a channel or thread as read |
 | `file download <id>` | Download a post's attachments or a single file (`--out <dir>`) |
 | `file upload <channel> <path>...` | Upload one or more files (`--message`, `--dry-run`) |
 | `config` | View/edit configuration (`path`, `list`, `get`, `set`, `generate`) |
 | `version` / `--version` | Print version, commit, and build date |
 
-**Channel references** accept several forms: a bare name (`python`, resolved
-against your team), `team/channel`, `@username` for a DM, or a raw channel ID.
-Channel-taking commands also accept `--team` to qualify a bare name.
+**Channel references** accept several forms: `~channel` (matches across teams),
+`team/channel`, `@username`, a bare email (opens DM), a bare channel name
+(resolved against your team; falls back to DM by username if not found as a
+channel), or a raw 26-char channel ID (with user-ID fallback).
 
 **Columns** — `read`, `search`, and `thread` accept `--columns` to choose output
 columns: a full list (`--columns time,user,message`) or add/remove from the

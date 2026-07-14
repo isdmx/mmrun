@@ -31,6 +31,14 @@ type fakeAPI struct {
 	loggedOut  bool
 	err        error
 
+	viewedChannel string
+	readThread    string
+	reacted       string
+	unreacted     string
+	reactions     []*model.Reaction
+	patched       *model.Post
+	deleted       string
+
 	streamEvents chan client.WSEvent
 	streamErrs   chan error
 	streamErr    error
@@ -48,6 +56,10 @@ func (f *fakeAPI) SetToken(string)                                       {}
 func (f *fakeAPI) Me(context.Context) (*model.User, error)               { return f.me, f.err }
 func (f *fakeAPI) Status(context.Context, string) (*model.Status, error) { return f.status, f.err }
 func (f *fakeAPI) UserByUsername(context.Context, string) (*model.User, error) {
+	return f.userByName, f.err
+}
+
+func (f *fakeAPI) UserByEmail(context.Context, string) (*model.User, error) {
 	return f.userByName, f.err
 }
 
@@ -121,6 +133,43 @@ func (f *fakeAPI) FileInfo(context.Context, string) (*model.FileInfo, error) {
 
 func (f *fakeAPI) FileInfosForPost(context.Context, string) ([]*model.FileInfo, error) {
 	return f.fileInfos, f.err
+}
+
+func (f *fakeAPI) ViewChannel(_ context.Context, _, channelID string) error {
+	f.viewedChannel = channelID
+	return f.err
+}
+
+func (f *fakeAPI) UpdateThreadRead(_ context.Context, _, _, threadID string) error {
+	f.readThread = threadID
+	return f.err
+}
+
+func (f *fakeAPI) SaveReaction(_ context.Context, _, _, emoji string) error {
+	f.reacted = emoji
+	return f.err
+}
+
+func (f *fakeAPI) DeleteReaction(_ context.Context, _, _, emoji string) error {
+	f.unreacted = emoji
+	return f.err
+}
+
+func (f *fakeAPI) ReactionsForPost(context.Context, string) ([]*model.Reaction, error) {
+	return f.reactions, f.err
+}
+
+func (f *fakeAPI) PatchPost(_ context.Context, _ string, msg string) (*model.Post, error) {
+	f.patched = &model.Post{Message: msg}
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.patched, nil
+}
+
+func (f *fakeAPI) DeletePost(_ context.Context, postID string) error {
+	f.deleted = postID
+	return f.err
 }
 func (f *fakeAPI) ServerURL() string { return "https://mm.example.com" }
 func (f *fakeAPI) ResolveChannel(context.Context, string, string, string) (*model.Channel, error) {

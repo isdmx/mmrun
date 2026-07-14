@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"time"
 
@@ -36,6 +38,22 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 	addThreadListRun(list, outputMode)
 
 	thread.AddCommand(list)
+
+	var markRead bool
+	threadRead := &cobra.Command{
+		Use:   "read <post-id>",
+		Short: "Read a thread and optionally mark it as read",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := requireSession(*outputMode)
+			if err != nil {
+				return err
+			}
+			return runThreadRead(app, args[0], markRead, cmd.OutOrStdout())
+		},
+	}
+	threadRead.Flags().BoolVar(&markRead, "mark-read", false, "mark the thread as read")
+	thread.AddCommand(threadRead)
 	return thread
 }
 
@@ -122,4 +140,40 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 		}
 	}
 	return app.render(w, res)
+}
+
+func runThreadRead(app *appContext, postID string, markRead bool, w io.Writer) error {
+	ctx := context.Background()
+	pl, err := app.api.PostThread(ctx, postID)
+	if err != nil {
+		return err
+	}
+	res := renderMessages(ctx, app, "Thread", chronological(pl), "", true, messageColumns)
+	if aerr := app.render(w, res); aerr != nil {
+		return aerr
+	}
+	if markRead {
+		if root, ok := threadRoot(pl, postID); ok {
+			ch, cerr := app.api.Channel(ctx, root.ChannelId)
+			if cerr == nil && ch.TeamId != "" {
+				if uerr := app.api.UpdateThreadRead(ctx, app.userID, ch.TeamId, postID); uerr != nil {
+					return uerr
+				}
+				fmt.Fprintf(os.Stderr, "Marked thread as read.\n")
+			}
+		}
+	}
+	return nil
+}
+
+// threadRoot returns the root post of a thread PostList, if present.
+func threadRoot(pl *model.PostList, postID string) (*model.Post, bool) {
+	if pl == nil {
+		return nil, false
+	}
+	root, ok := pl.Posts[postID]
+	if !ok || root == nil {
+		return nil, false
+	}
+	return root, true
 }

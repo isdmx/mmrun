@@ -41,9 +41,13 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newPostCmd(&opts.outputMode))
 	root.AddCommand(newReadCmd(&opts.outputMode))
 	root.AddCommand(newThreadCmd(&opts.outputMode))
+	root.AddCommand(newMarkReadCmd(&opts.outputMode))
 	root.AddCommand(newSearchCmd(&opts.outputMode))
 	root.AddCommand(newFileCmd(&opts.outputMode))
 	root.AddCommand(newTailCmd(&opts.outputMode))
+	root.AddCommand(newReactCmd(&opts.outputMode))
+	root.AddCommand(newEditCmd(&opts.outputMode))
+	root.AddCommand(newMentionsCmd(&opts.outputMode))
 	root.AddCommand(newVersionCmd(&opts.outputMode))
 	root.AddCommand(newConfigCmd(&opts.outputMode))
 	return root

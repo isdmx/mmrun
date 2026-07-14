@@ -59,6 +59,23 @@ func TestPost_AttachesMultipleFiles(t *testing.T) {
 	}
 }
 
+func TestPost_Stdin(t *testing.T) {
+	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, created: &model.Post{Id: "p1"}}
+	app := &appContext{api: fake, outputMode: "ai"}
+	old := os.Stdin
+	r, w, _ := os.Pipe()
+	os.Stdin = r
+	defer func() { os.Stdin = old }()
+	go func() { _, _ = w.Write([]byte("from pipe")); w.Close() }()
+	var buf bytes.Buffer
+	if err := runPost(app, "eng/general", "-", postOpts{}, &buf); err != nil {
+		t.Fatalf("runPost stdin: %v", err)
+	}
+	if fake.lastPost == nil || fake.lastPost.Message != "from pipe" {
+		t.Errorf("stdin message not posted: %+v", fake.lastPost)
+	}
+}
+
 func TestPost_DryRun(t *testing.T) {
 	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}}
 	app := &appContext{api: fake, outputMode: "ai"}

@@ -31,6 +31,21 @@ func TestRead_RendersMessagesInOrder(t *testing.T) {
 	}
 }
 
+func TestRead_MarkRead(t *testing.T) {
+	fake := &fakeAPI{
+		resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen},
+		posts:    &model.PostList{},
+	}
+	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runRead(app, "eng/general", readOpts{markRead: true}, &buf); err != nil {
+		t.Fatalf("runRead with mark-read: %v", err)
+	}
+	if fake.viewedChannel == "" {
+		t.Error("ViewChannel should have been called")
+	}
+}
+
 func TestParseSince(t *testing.T) {
 	ms, err := parseSince("24h")
 	if err != nil {
