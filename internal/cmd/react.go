@@ -55,7 +55,7 @@ func runReact(app *appContext, postID, emoji string, w io.Writer) error {
 		return err
 	}
 	res := output.Result{Text: "reacted :" + emoji + ": on " + postID}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }
 
 func runUnreact(app *appContext, postID, emoji string, yes bool, w io.Writer) error {
@@ -68,5 +68,5 @@ func runUnreact(app *appContext, postID, emoji string, yes bool, w io.Writer) er
 		return err
 	}
 	res := output.Result{Text: "removed :" + emoji + ": from " + postID}
-	return output.New(app.outputMode, stdoutFile(w)).Render(w, res)
+	return app.render(w, res)
 }

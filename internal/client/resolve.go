@@ -18,7 +18,7 @@ import (
 //
 // selfUserID is the ID of the authenticated user, required to open DM channels.
 //
-//nolint:gocognit,gocyclo // sequential six-form resolution chain
+//nolint:gocognit,gocyclo,funlen // sequential six-form resolution chain
 func (c *Client) ResolveChannel(ctx context.Context, ref, defaultTeam, selfUserID string) (*model.Channel, error) {
 	// 1. @username
 	if strings.HasPrefix(ref, "@") {
@@ -103,15 +103,19 @@ func (c *Client) ResolveChannel(ctx context.Context, ref, defaultTeam, selfUserI
 	}
 
 	// 6. Bare word: channel not found → try user by username
-	other, _, userErr := c.mm.GetUserByUsername(ctx, ref, "")
-	if userErr != nil {
-		return nil, fmt.Errorf("resolve channel %q: %w", ref, err)
+	// Only meaningful when ref is a single word (no /).
+	if !strings.Contains(ref, "/") {
+		other, _, userErr := c.mm.GetUserByUsername(ctx, ref, "")
+		if userErr != nil {
+			return nil, fmt.Errorf("resolve channel %q: %w", ref, err)
+		}
+		dmCh, _, dmErr := c.mm.CreateDirectChannel(ctx, selfUserID, other.Id)
+		if dmErr != nil {
+			return nil, fmt.Errorf("open DM: %w", dmErr)
+		}
+		return dmCh, nil
 	}
-	dmCh, _, dmErr := c.mm.CreateDirectChannel(ctx, selfUserID, other.Id)
-	if dmErr != nil {
-		return nil, fmt.Errorf("open DM: %w", dmErr)
-	}
-	return dmCh, nil
+	return nil, fmt.Errorf("resolve channel %q: %w", ref, err)
 }
 
 // soleTeamName returns the name of the only team the user belongs to. It errors

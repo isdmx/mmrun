@@ -169,11 +169,17 @@ func fileSummary(p *model.Post) string {
 // time) and returns a postId→display summary map, e.g. ":thumbsup: 2 :rocket: 1".
 func resolveReactions(ctx context.Context, app *appContext, posts []*model.Post) map[string]string {
 	out := map[string]string{}
-	if len(posts) == 0 {
+	launched := 0
+	for _, p := range posts {
+		if p != nil {
+			launched++
+		}
+	}
+	if launched == 0 {
 		return out
 	}
 	type result struct{ id, display string }
-	results := make(chan result, len(posts))
+	results := make(chan result, launched)
 	sem := make(chan struct{}, 8)
 
 	for _, p := range posts {
@@ -200,7 +206,7 @@ func resolveReactions(ctx context.Context, app *appContext, posts []*model.Post)
 		}(p.Id)
 	}
 
-	for range posts {
+	for i := 0; i < launched; i++ {
 		r := <-results
 		if r.display != "" {
 			out[r.id] = r.display
