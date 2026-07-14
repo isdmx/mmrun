@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"github.com/isdmx/mmrun/internal/output"
 )
 
-var messageColumns = []string{"time", "channel", "user", "files", "root_id", "post_id", "permalink", "message"}
+var messageColumns = []string{"time", "channel", "user", "files", "reactions", "root_id", "post_id", "permalink", "message"}
 
 // renderMessages builds a message Result from posts in the given order. It
 // resolves user IDs to usernames (one batched call), channel IDs to readable
@@ -20,6 +21,7 @@ var messageColumns = []string{"time", "channel", "user", "files", "root_id", "po
 // message whitespace for non-JSON output.
 func renderMessages(ctx context.Context, app *appContext, title string, posts []*model.Post, permalinkTeam string, full bool, columns []string) output.Result {
 	usernames := resolveUsernames(ctx, app, posts)
+	reactions := resolveReactions(ctx, app, posts)
 	channelNames := map[string]string{}
 	clean := app.outputMode != "json" && !full
 	server := serverBase(app)
@@ -38,13 +40,14 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 			msg = preview(msg, app.previewLen)
 		}
 		row := output.Row{
-			"time":    time.UnixMilli(p.CreateAt).Format(time.RFC3339),
-			"channel": channelLabel(ctx, app, p.ChannelId, channelNames),
-			"user":    user,
-			"files":   fileSummary(p),
-			"root_id": p.RootId,
-			"post_id": p.Id,
-			"message": msg,
+			"time":      time.UnixMilli(p.CreateAt).Format(time.RFC3339),
+			"channel":   channelLabel(ctx, app, p.ChannelId, channelNames),
+			"user":      user,
+			"files":     fileSummary(p),
+			"reactions": reactions[p.Id],
+			"root_id":   p.RootId,
+			"post_id":   p.Id,
+			"message":   msg,
 		}
 		if server != "" && permalinkTeam != "" {
 			row["permalink"] = server + "/" + permalinkTeam + "/pl/" + p.Id
@@ -160,4 +163,57 @@ func fileSummary(p *model.Post) string {
 		return strconv.Itoa(n)
 	}
 	return ""
+}
+
+// resolveReactions fetches reactions for each post (bounded concurrency, 8 at a
+// time) and returns a postId→display summary map, e.g. ":thumbsup: 2 :rocket: 1".
+func resolveReactions(ctx context.Context, app *appContext, posts []*model.Post) map[string]string {
+	out := map[string]string{}
+	if len(posts) == 0 {
+		return out
+	}
+	type result struct{ id, display string }
+	results := make(chan result, len(posts))
+	sem := make(chan struct{}, 8)
+
+	for _, p := range posts {
+		if p == nil {
+			continue
+		}
+		sem <- struct{}{}
+		go func(postID string) {
+			defer func() { <-sem }()
+			rr, err := app.api.ReactionsForPost(ctx, postID)
+			if err != nil {
+				results <- result{id: postID}
+				return
+			}
+			counts := map[string]int{}
+			for _, r := range rr {
+				counts[r.EmojiName]++
+			}
+			var parts []string
+			for _, name := range sortedKeys(counts) {
+				parts = append(parts, fmt.Sprintf(":%s: %d", name, counts[name]))
+			}
+			results <- result{id: postID, display: strings.Join(parts, " ")}
+		}(p.Id)
+	}
+
+	for range posts {
+		r := <-results
+		if r.display != "" {
+			out[r.id] = r.display
+		}
+	}
+	return out
+}
+
+func sortedKeys(m map[string]int) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

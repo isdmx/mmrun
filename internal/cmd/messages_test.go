@@ -84,6 +84,20 @@ func TestChannelLabel_DirectMessage(t *testing.T) {
 	}
 }
 
+func TestResolveReactions(t *testing.T) {
+	fake := &fakeAPI{reactions: []*model.Reaction{
+		{PostId: "p1", EmojiName: "thumbsup", UserId: "u2"},
+		{PostId: "p1", EmojiName: "thumbsup", UserId: "u3"},
+		{PostId: "p1", EmojiName: "rocket", UserId: "u2"},
+	}}
+	app := &appContext{api: fake}
+	posts := []*model.Post{{Id: "p1"}}
+	got := resolveReactions(context.Background(), app, posts)
+	if v, ok := got["p1"]; !ok || !strings.Contains(v, "thumbsup") || !strings.Contains(v, "2") {
+		t.Errorf("reactions = %q, want :thumbsup: 2 :rocket: 1", v)
+	}
+}
+
 func TestChannelLabel_SelfDM(t *testing.T) {
 	app := &appContext{
 		api:    &fakeAPI{resolved: &model.Channel{Id: "d1", Name: "u1__u1", Type: model.ChannelTypeDirect}},
