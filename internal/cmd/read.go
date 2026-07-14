@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"time"
 
@@ -12,12 +13,13 @@ import (
 )
 
 type readOpts struct {
-	limit   int
-	since   string
-	thread  string
-	team    string
-	full    bool
-	columns string
+	limit    int
+	since    string
+	thread   string
+	team     string
+	full     bool
+	columns  string
+	markRead bool
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
@@ -40,6 +42,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full message text instead of a single-line preview")
 	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. time,user,message or -permalink)")
+	cmd.Flags().BoolVar(&opts.markRead, "mark-read", false, "mark the channel as read after fetching messages")
 	return cmd
 }
 
@@ -75,6 +78,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	var pl *model.PostList
 	title := "Messages"
 	permalinkTeam := ""
+	var markCh *model.Channel
 
 	switch {
 	case opts.thread != "":
@@ -85,6 +89,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 		if rerr != nil {
 			return rerr
 		}
+		markCh = ch
 		permalinkTeam = permalinkTeamFor(ctx, app, ch)
 		if opts.since != "" {
 			since, perr := parseSince(opts.since)
@@ -101,7 +106,14 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	}
 
 	res := renderMessages(ctx, app, title, chronological(pl), permalinkTeam, opts.full, columns)
-	return app.render(w, res)
+	aerr := app.render(w, res)
+	if opts.markRead && markCh != nil {
+		if herr := app.api.ViewChannel(ctx, app.userID, markCh.Id); herr != nil {
+			return herr
+		}
+		fmt.Fprintf(os.Stderr, "Marked %s as read.\n", markCh.Name)
+	}
+	return aerr
 }
 
 // permalinkTeamFor returns the team name usable in a permalink for a channel,

@@ -41,6 +41,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newPostCmd(&opts.outputMode))
 	root.AddCommand(newReadCmd(&opts.outputMode))
 	root.AddCommand(newThreadCmd(&opts.outputMode))
+	root.AddCommand(newMarkReadCmd(&opts.outputMode))
 	root.AddCommand(newSearchCmd(&opts.outputMode))
 	root.AddCommand(newFileCmd(&opts.outputMode))
 	root.AddCommand(newTailCmd(&opts.outputMode))
