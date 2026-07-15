@@ -167,3 +167,57 @@ func (a *appContext) resolveTeam(ctx context.Context, name string) (id, resolved
 	}
 	return "", "", fmt.Errorf("team %q not found among your memberships", name)
 }
+
+// reLogin prompts the user to re-authenticate when the session has expired.
+// It reads y/N from stdin, runs the password login flow (with MFA fallback),
+// and saves the new session token. Returns the new token, or an error when
+// the user declines or login fails.
+func reLogin() (string, error) {
+	fmt.Fprintf(os.Stderr, "\nSession expired. Re-authenticate? (y/N): ")
+	var answer string
+	_, _ = fmt.Scanln(&answer)
+	if answer != "y" && answer != "Y" && answer != "yes" {
+		return "", fmt.Errorf("re-login declined")
+	}
+	sess, err := session.Load()
+	if err != nil {
+		return "", err
+	}
+	userID, err := promptLine("Username or email: ")
+	if err != nil {
+		return "", err
+	}
+	pass, err := promptSecret("Password: ")
+	if err != nil {
+		return "", err
+	}
+	c := client.New(sess.ServerURL)
+	_, err = c.Login(context.Background(), userID, pass)
+	if err != nil {
+		if needsMFA(err.Error()) {
+			mfa, merr := promptLine("MFA token: ")
+			if merr != nil {
+				return "", merr
+			}
+			_, err = c.LoginWithMFA(context.Background(), userID, pass, mfa)
+		}
+		if err != nil {
+			return "", fmt.Errorf("re-login failed: %w", err)
+		}
+	}
+	tok := c.Token()
+	_ = session.Save(&session.Session{
+		ServerURL: sess.ServerURL,
+		Token:     tok,
+		UserID:    sess.UserID,
+		Username:  sess.Username,
+	})
+	usr, _ := c.Me(context.Background())
+	if usr != nil {
+		_ = session.Save(&session.Session{
+			ServerURL: sess.ServerURL, Token: tok,
+			UserID: usr.Id, Username: usr.Username,
+		})
+	}
+	return tok, nil
+}

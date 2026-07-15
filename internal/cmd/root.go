@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/version"
 )
 
@@ -58,11 +59,20 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 func Run() int {
 	opts := &globalOpts{}
 	err := newRootCmd(opts).Execute()
-	if err == nil {
-		return 0
+	if err != nil {
+		if client.StatusCode(err) == 401 {
+			if _, envErr := envAuth(); envErr != nil {
+				if _, rerr := reLogin(); rerr == nil {
+					err = newRootCmd(opts).Execute()
+				}
+			}
+		}
+		if err != nil {
+			printError(err, opts.outputMode)
+			return ExitCode(err)
+		}
 	}
-	printError(err, opts.outputMode)
-	return ExitCode(err)
+	return 0
 }
 
 // printError writes err to stderr, as a JSON object when the output mode is
