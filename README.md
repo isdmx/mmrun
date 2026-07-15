@@ -77,11 +77,35 @@ mmrun tail incidents
 | `edit edit <post-id> <msg>` | Edit a post's text |
 | `edit delete <post-id> --yes` | Delete a post (requires `--yes`) |
 | `mentions [--team] [--limit]` | Search posts that mention you |
+| `reply <post-id> <msg>` | Reply to a post in its channel (`--file`, `--dry-run`) |
 | `mark-read <id> [--type]` | Mark a channel or thread as read |
 | `file download <id>` | Download a post's attachments or a single file (`--out <dir>`) |
 | `file upload <channel> <path>...` | Upload one or more files (`--message`, `--dry-run`) |
+| `open <id>` | Open a post or channel in the browser |
 | `config` | View/edit configuration (`path`, `list`, `get`, `set`, `generate`) |
 | `version` / `--version` | Print version, commit, and build date |
+
+**Output formats** — `read`, `search`, `thread read`, and `mentions` accept
+`--format table|tree` and `--threads-only`. Tree mode shows replies indented
+under root posts with `●`/`↳` markers. Set the default via
+`config set format tree`.
+
+**Shell completion** — `mmrun read <tab>` completes channel names and
+`@usernames`; `mmrun post <tab>` does the same; post-ID commands complete
+thread IDs. Flag completion for `--team`. Enable with:
+```sh
+source <(mmrun completion bash)   # or zsh, fish
+```
+
+### CI / automation
+Set `MMRUN_URL` and `MMRUN_TOKEN` to skip `auth login` entirely:
+```sh
+export MMRUN_URL=https://mattermost.example.com
+export MMRUN_TOKEN=<your-token>
+mmrun post town-square "deploy finished"
+```
+Env auth is ephemeral — no session file is written. Re-login on 401 is
+automatically suppressed when using env auth.
 
 **Channel references** accept several forms: `~channel` (matches across teams),
 `team/channel`, `@username`, a bare email (opens DM), a bare channel name
