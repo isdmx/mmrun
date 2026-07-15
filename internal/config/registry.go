@@ -112,6 +112,13 @@ func settingsFor(c *Config) map[string]setting {
 			get:      func(c *Config) string { return c.Columns },
 			set:      func(c *Config, v string) error { c.Columns = v; return nil },
 		},
+		"format": {
+			description: "output format for read/search/thread/mentions: table|tree",
+			def:         "table",
+			validate:    enumValidator("table", "tree"),
+			get:         func(c *Config) string { return c.Format() },
+			set:         func(c *Config, v string) error { c.Format_ = v; return nil },
+		},
 	}
 }
 

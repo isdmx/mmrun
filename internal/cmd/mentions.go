@@ -15,6 +15,7 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	var limit int
 	var full bool
 	var columns string
+	var format string
 	cmd := &cobra.Command{
 		Use:   "mentions",
 		Short: "Search posts that mention you",
@@ -24,18 +25,19 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runMentions(app, teamName, columns, limit, full, cmd.OutOrStdout())
+			return runMentions(app, teamName, columns, limit, full, format, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&teamName, "team", "", "restrict to this team")
 	cmd.Flags().IntVar(&limit, "limit", 0, "max results (default from config)")
 	cmd.Flags().BoolVar(&full, "full", false, "show full message text")
 	cmd.Flags().StringVar(&columns, "columns", "", "columns to show")
+	cmd.Flags().StringVar(&format, "format", "", "output format: table|tree")
 	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 
-func runMentions(app *appContext, teamName, columns string, limit int, full bool, w io.Writer) error {
+func runMentions(app *appContext, teamName, columns string, limit int, full bool, format string, w io.Writer) error {
 	ctx := context.Background()
 	if app.username == "" {
 		return fmt.Errorf("no username in session; re-login to store it")
@@ -101,5 +103,5 @@ func runMentions(app *appContext, teamName, columns string, limit int, full bool
 		return err
 	}
 	res := renderMessages(ctx, app, "Mentions", allPosts, permalinkTeam, full, cols)
-	return app.render(w, res)
+	return app.renderWith(w, res, format)
 }

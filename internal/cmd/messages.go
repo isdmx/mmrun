@@ -223,3 +223,13 @@ func sortedKeys(m map[string]int) []string {
 	sort.Strings(keys)
 	return keys
 }
+
+func filterRoots(posts []*model.Post) []*model.Post {
+	out := make([]*model.Post, 0, len(posts))
+	for _, p := range posts {
+		if p != nil && p.RootId == "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}

@@ -43,12 +43,13 @@ func requireSession(outputMode string) (*appContext, error) {
 		}
 		cfg, cfgerr := config.Load()
 		var previewLen, defaultLimit int
-		var downloadDir, columnsDefault string
+		var downloadDir, columnsDefault, format string
 		if cfgerr == nil && cfg != nil {
 			previewLen = cfg.PreviewLen()
 			defaultLimit = cfg.DefaultLimit()
 			downloadDir = cfg.DownloadDir()
 			columnsDefault = cfg.Columns
+			format = cfg.Format()
 		}
 		if previewLen == 0 {
 			previewLen = 140
@@ -58,6 +59,9 @@ func requireSession(outputMode string) (*appContext, error) {
 		}
 		if downloadDir == "" {
 			downloadDir = config.Paths().DownloadDir
+		}
+		if format == "" {
+			format = "table"
 		}
 		return &appContext{
 			api:            cl,
@@ -70,7 +74,7 @@ func requireSession(outputMode string) (*appContext, error) {
 			defaultLimit:   defaultLimit,
 			downloadDir:    downloadDir,
 			columnsDefault: columnsDefault,
-			format:         "table",
+			format:         format,
 		}, nil
 	}
 
@@ -107,12 +111,24 @@ func requireSession(outputMode string) (*appContext, error) {
 		defaultLimit:   cfg.DefaultLimit(),
 		downloadDir:    cfg.DownloadDir(),
 		columnsDefault: cfg.Columns,
+		format:         cfg.Format(),
 	}, nil
 }
 
 // render writes a Result using the app's output mode, color, and highlight terms.
 func (a *appContext) render(w io.Writer, res output.Result) error {
-	opts := output.Options{Color: a.color}
+	opts := output.Options{Color: a.color, Format: a.format}
+	if a.username != "" {
+		opts.Highlight = []string{"@" + a.username}
+	}
+	return output.NewWithOptions(a.outputMode, stdoutFile(w), opts).Render(w, res)
+}
+
+func (a *appContext) renderWith(w io.Writer, res output.Result, format string) error {
+	opts := output.Options{Color: a.color, Format: a.format}
+	if format != "" {
+		opts.Format = format
+	}
 	if a.username != "" {
 		opts.Highlight = []string{"@" + a.username}
 	}
