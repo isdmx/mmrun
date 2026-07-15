@@ -22,16 +22,58 @@ type appContext struct {
 	defaultTeam    string
 	userID         string
 	username       string
+	mustLogin      bool
 	color          string
 	previewLen     int
 	defaultLimit   int
 	downloadDir    string
 	columnsDefault string
+	format         string
 }
 
 // requireSession builds an authenticated appContext from the stored session and
 // config preferences.
 func requireSession(outputMode string) (*appContext, error) {
+	d, err := envAuth()
+	if err == nil {
+		cl := client.NewWithToken(d.url, d.token)
+		u, uerr := cl.Me(context.Background())
+		if uerr != nil {
+			return nil, fmt.Errorf("env auth token validation failed: %w", uerr)
+		}
+		cfg, cfgerr := config.Load()
+		var previewLen, defaultLimit int
+		var downloadDir, columnsDefault string
+		if cfgerr == nil && cfg != nil {
+			previewLen = cfg.PreviewLen()
+			defaultLimit = cfg.DefaultLimit()
+			downloadDir = cfg.DownloadDir()
+			columnsDefault = cfg.Columns
+		}
+		if previewLen == 0 {
+			previewLen = 140
+		}
+		if defaultLimit == 0 {
+			defaultLimit = 50
+		}
+		if downloadDir == "" {
+			downloadDir = config.Paths().DownloadDir
+		}
+		return &appContext{
+			api:            cl,
+			outputMode:     outputMode,
+			userID:         u.Id,
+			username:       u.Username,
+			mustLogin:      true,
+			color:          "auto",
+			previewLen:     previewLen,
+			defaultLimit:   defaultLimit,
+			downloadDir:    downloadDir,
+			columnsDefault: columnsDefault,
+			format:         "table",
+		}, nil
+	}
+
 	sess, err := session.Load()
 	if err != nil {
 		return nil, err
