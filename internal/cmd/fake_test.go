@@ -87,8 +87,11 @@ func (f *fakeAPI) ChannelsForUser(context.Context, string, string) ([]*model.Cha
 	return f.channels, f.err
 }
 
-func (f *fakeAPI) Channel(context.Context, string) (*model.Channel, error) {
-	return f.resolved, f.err
+func (f *fakeAPI) Channel(_ context.Context, id string) (*model.Channel, error) {
+	if f.resolved != nil && f.resolved.Id == id {
+		return f.resolved, f.err
+	}
+	return nil, f.err
 }
 
 func (f *fakeAPI) SearchChannels(context.Context, string, string) ([]*model.Channel, error) {
