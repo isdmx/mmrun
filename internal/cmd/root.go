@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/version"
 )
 
@@ -39,6 +40,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newChannelCmd(&opts.outputMode))
 	root.AddCommand(newUserCmd(&opts.outputMode))
 	root.AddCommand(newPostCmd(&opts.outputMode))
+	root.AddCommand(newReplyCmd(&opts.outputMode))
 	root.AddCommand(newReadCmd(&opts.outputMode))
 	root.AddCommand(newThreadCmd(&opts.outputMode))
 	root.AddCommand(newMarkReadCmd(&opts.outputMode))
@@ -50,6 +52,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newMentionsCmd(&opts.outputMode))
 	root.AddCommand(newVersionCmd(&opts.outputMode))
 	root.AddCommand(newConfigCmd(&opts.outputMode))
+	root.AddCommand(newOpenCmd(&opts.outputMode))
 	return root
 }
 
@@ -58,11 +61,20 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 func Run() int {
 	opts := &globalOpts{}
 	err := newRootCmd(opts).Execute()
-	if err == nil {
-		return 0
+	if err != nil {
+		if client.StatusCode(err) == 401 {
+			if _, envErr := envAuth(); envErr != nil {
+				if _, rerr := reLogin(); rerr == nil {
+					err = newRootCmd(opts).Execute()
+				}
+			}
+		}
+		if err != nil {
+			printError(err, opts.outputMode)
+			return ExitCode(err)
+		}
 	}
-	printError(err, opts.outputMode)
-	return ExitCode(err)
+	return 0
 }
 
 // printError writes err to stderr, as a JSON object when the output mode is

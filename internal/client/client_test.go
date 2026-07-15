@@ -3,12 +3,27 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/mattermost/mattermost/server/public/model"
 )
+
+func TestStatusCode(t *testing.T) {
+	if got := StatusCode(nil); got != 0 {
+		t.Errorf("nil = %d, want 0", got)
+	}
+	appErr := &model.AppError{StatusCode: 401, Message: "unauthorized"}
+	if got := StatusCode(appErr); got != 401 {
+		t.Errorf("401 = %d", got)
+	}
+	plainErr := errors.New("network error")
+	if got := StatusCode(plainErr); got != 0 {
+		t.Errorf("plain = %d, want 0", got)
+	}
+}
 
 func TestGetMe(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

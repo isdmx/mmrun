@@ -22,16 +22,62 @@ type appContext struct {
 	defaultTeam    string
 	userID         string
 	username       string
+	mustLogin      bool
 	color          string
 	previewLen     int
 	defaultLimit   int
 	downloadDir    string
 	columnsDefault string
+	format         string
 }
 
 // requireSession builds an authenticated appContext from the stored session and
 // config preferences.
 func requireSession(outputMode string) (*appContext, error) {
+	d, err := envAuth()
+	if err == nil {
+		cl := client.NewWithToken(d.url, d.token)
+		u, uerr := cl.Me(context.Background())
+		if uerr != nil {
+			return nil, fmt.Errorf("env auth token validation failed: %w", uerr)
+		}
+		cfg, cfgerr := config.Load()
+		var previewLen, defaultLimit int
+		var downloadDir, columnsDefault, format string
+		if cfgerr == nil && cfg != nil {
+			previewLen = cfg.PreviewLen()
+			defaultLimit = cfg.DefaultLimit()
+			downloadDir = cfg.DownloadDir()
+			columnsDefault = cfg.Columns
+			format = cfg.Format()
+		}
+		if previewLen == 0 {
+			previewLen = 140
+		}
+		if defaultLimit == 0 {
+			defaultLimit = 50
+		}
+		if downloadDir == "" {
+			downloadDir = config.Paths().DownloadDir
+		}
+		if format == "" {
+			format = "table"
+		}
+		return &appContext{
+			api:            cl,
+			outputMode:     outputMode,
+			userID:         u.Id,
+			username:       u.Username,
+			mustLogin:      true,
+			color:          "auto",
+			previewLen:     previewLen,
+			defaultLimit:   defaultLimit,
+			downloadDir:    downloadDir,
+			columnsDefault: columnsDefault,
+			format:         format,
+		}, nil
+	}
+
 	sess, err := session.Load()
 	if err != nil {
 		return nil, err
@@ -65,12 +111,24 @@ func requireSession(outputMode string) (*appContext, error) {
 		defaultLimit:   cfg.DefaultLimit(),
 		downloadDir:    cfg.DownloadDir(),
 		columnsDefault: cfg.Columns,
+		format:         cfg.Format(),
 	}, nil
 }
 
 // render writes a Result using the app's output mode, color, and highlight terms.
 func (a *appContext) render(w io.Writer, res output.Result) error {
-	opts := output.Options{Color: a.color}
+	opts := output.Options{Color: a.color, Format: a.format}
+	if a.username != "" {
+		opts.Highlight = []string{"@" + a.username}
+	}
+	return output.NewWithOptions(a.outputMode, stdoutFile(w), opts).Render(w, res)
+}
+
+func (a *appContext) renderWith(w io.Writer, res output.Result, format string) error {
+	opts := output.Options{Color: a.color, Format: a.format}
+	if format != "" {
+		opts.Format = format
+	}
 	if a.username != "" {
 		opts.Highlight = []string{"@" + a.username}
 	}
@@ -124,4 +182,58 @@ func (a *appContext) resolveTeam(ctx context.Context, name string) (id, resolved
 		}
 	}
 	return "", "", fmt.Errorf("team %q not found among your memberships", name)
+}
+
+// reLogin prompts the user to re-authenticate when the session has expired.
+// It reads y/N from stdin, runs the password login flow (with MFA fallback),
+// and saves the new session token. Returns the new token, or an error when
+// the user declines or login fails.
+func reLogin() (string, error) {
+	fmt.Fprintf(os.Stderr, "\nSession expired. Re-authenticate? (y/N): ")
+	var answer string
+	_, _ = fmt.Scanln(&answer)
+	if answer != "y" && answer != "Y" && answer != "yes" {
+		return "", fmt.Errorf("re-login declined")
+	}
+	sess, err := session.Load()
+	if err != nil {
+		return "", err
+	}
+	userID, err := promptLine("Username or email: ")
+	if err != nil {
+		return "", err
+	}
+	pass, err := promptSecret("Password: ")
+	if err != nil {
+		return "", err
+	}
+	c := client.New(sess.ServerURL)
+	_, err = c.Login(context.Background(), userID, pass)
+	if err != nil {
+		if needsMFA(err.Error()) {
+			mfa, merr := promptLine("MFA token: ")
+			if merr != nil {
+				return "", merr
+			}
+			_, err = c.LoginWithMFA(context.Background(), userID, pass, mfa)
+		}
+		if err != nil {
+			return "", fmt.Errorf("re-login failed: %w", err)
+		}
+	}
+	tok := c.Token()
+	_ = session.Save(&session.Session{
+		ServerURL: sess.ServerURL,
+		Token:     tok,
+		UserID:    sess.UserID,
+		Username:  sess.Username,
+	})
+	usr, _ := c.Me(context.Background())
+	if usr != nil {
+		_ = session.Save(&session.Session{
+			ServerURL: sess.ServerURL, Token: tok,
+			UserID: usr.Id, Username: usr.Username,
+		})
+	}
+	return tok, nil
 }

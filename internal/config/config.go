@@ -22,6 +22,7 @@ type Config struct {
 	ColorMode     string `toml:"color"`
 	DownloadDir_  string `toml:"download_dir"` //nolint:revive // toml field paired with accessor method
 	Columns       string `toml:"columns"`
+	Format_       string `toml:"format"` //nolint:revive // toml field paired with accessor method
 }
 
 // DefaultLimit returns the configured page size, or 50.
@@ -54,6 +55,14 @@ func (c *Config) DownloadDir() string {
 		return c.DownloadDir_
 	}
 	return Paths().DownloadDir
+}
+
+// Format returns the configured output format for read/search/thread/mentions.
+func (c *Config) Format() string {
+	if c.Format_ == "" {
+		return "table"
+	}
+	return c.Format_
 }
 
 // PathSet holds resolved XDG file locations.

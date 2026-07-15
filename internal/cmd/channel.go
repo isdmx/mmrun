@@ -41,6 +41,7 @@ func newChannelCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	search.Flags().StringVar(&searchTeam, "team", "", "team to search within (defaults to your team if you have only one)")
+	registerTeamFlagCompletion(search)
 
 	channel.AddCommand(list, search)
 	return channel
@@ -60,6 +61,7 @@ func addChannelListRun(cmd *cobra.Command, outputMode *string) {
 	}
 	cmd.Flags().StringVar(&team, "team", "", "team name (defaults to your team if you have only one)")
 	cmd.Flags().StringVar(&chType, "type", "default", "filter: default|public|private|dm|group|all")
+	registerTeamFlagCompletion(cmd)
 }
 
 func runChannelList(app *appContext, teamName, chType string, w io.Writer) error {

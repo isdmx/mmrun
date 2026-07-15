@@ -20,7 +20,7 @@ func TestThreadRead_MarkRead(t *testing.T) {
 	}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
-	if err := runThreadRead(app, "p1", true, &buf); err != nil {
+	if err := runThreadRead(app, "p1", true, "", &buf); err != nil {
 		t.Fatalf("thread read mark-read: %v", err)
 	}
 	if fake.readThread != "p1" {

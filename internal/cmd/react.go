@@ -14,7 +14,7 @@ import (
 func newReactCmd(outputMode *string) *cobra.Command {
 	react := &cobra.Command{Use: "react", Short: "Manage reactions"}
 
-	react.AddCommand(&cobra.Command{
+	add := &cobra.Command{
 		Use:   "add <post-id> <emoji>",
 		Short: "Add a reaction to a post",
 		Args:  cobra.ExactArgs(2),
@@ -25,7 +25,9 @@ func newReactCmd(outputMode *string) *cobra.Command {
 			}
 			return runReact(app, args[0], args[1], cmd.OutOrStdout())
 		},
-	})
+	}
+	add.ValidArgsFunction = completePostIDArg
+	react.AddCommand(add)
 
 	var yes bool
 	unreact := &cobra.Command{
@@ -41,6 +43,7 @@ func newReactCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	unreact.Flags().BoolVar(&yes, "yes", false, "confirm removal")
+	unreact.ValidArgsFunction = completePostIDArg
 	react.AddCommand(unreact)
 
 	return react

@@ -167,6 +167,8 @@ func fileSummary(p *model.Post) string {
 
 // resolveReactions fetches reactions for each post (bounded concurrency, 8 at a
 // time) and returns a postId→display summary map, e.g. ":thumbsup: 2 :rocket: 1".
+// Note: reactions may not be returned for DM channel posts by some Mattermost
+// servers — this is a server-side limitation, not a client bug.
 func resolveReactions(ctx context.Context, app *appContext, posts []*model.Post) map[string]string {
 	out := map[string]string{}
 	launched := 0
@@ -222,4 +224,14 @@ func sortedKeys(m map[string]int) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func filterRoots(posts []*model.Post) []*model.Post {
+	out := make([]*model.Post, 0, len(posts))
+	for _, p := range posts {
+		if p != nil && p.RootId == "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

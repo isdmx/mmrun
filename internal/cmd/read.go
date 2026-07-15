@@ -13,13 +13,15 @@ import (
 )
 
 type readOpts struct {
-	limit    int
-	since    string
-	thread   string
-	team     string
-	full     bool
-	columns  string
-	markRead bool
+	limit       int
+	since       string
+	thread      string
+	team        string
+	full        bool
+	columns     string
+	markRead    bool
+	format      string
+	threadsOnly bool
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
@@ -43,6 +45,9 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full message text instead of a single-line preview")
 	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. time,user,message or -permalink)")
 	cmd.Flags().BoolVar(&opts.markRead, "mark-read", false, "mark the channel as read after fetching messages")
+	cmd.Flags().StringVar(&opts.format, "format", "", "output format: table|tree (default from config)")
+	cmd.Flags().BoolVar(&opts.threadsOnly, "threads-only", false, "show only root posts (no replies)")
+	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
 
@@ -105,8 +110,13 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 		return err
 	}
 
-	res := renderMessages(ctx, app, title, chronological(pl), permalinkTeam, opts.full, columns)
-	aerr := app.render(w, res)
+	posts := chronological(pl)
+	if opts.threadsOnly {
+		posts = filterRoots(posts)
+	}
+
+	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns)
+	aerr := app.renderWith(w, res, opts.format)
 	if opts.markRead && markCh != nil {
 		if herr := app.api.ViewChannel(ctx, app.userID, markCh.Id); herr != nil {
 			return herr

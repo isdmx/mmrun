@@ -115,3 +115,26 @@ func TestRead_Thread(t *testing.T) {
 		t.Errorf("missing thread post:\n%s", buf.String())
 	}
 }
+
+func TestRead_ThreadsOnly(t *testing.T) {
+	pl := &model.PostList{
+		Order: []string{"p1", "p2"},
+		Posts: map[string]*model.Post{
+			"p1": {Id: "p1", Message: "root", UserId: "u2", ChannelId: "c1", CreateAt: 1000},
+			"p2": {Id: "p2", Message: "reply", UserId: "u3", ChannelId: "c1", RootId: "p1", CreateAt: 2000},
+		},
+	}
+	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}, {Id: "u3", Username: "charlie"}}}
+	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runRead(app, "eng/general", readOpts{threadsOnly: true}, &buf); err != nil {
+		t.Fatalf("runRead threads-only: %v", err)
+	}
+	out := buf.String()
+	if strings.Contains(out, "reply") {
+		t.Error("threads-only should exclude reply posts")
+	}
+	if !strings.Contains(out, "root") {
+		t.Error("threads-only should include root posts")
+	}
+}

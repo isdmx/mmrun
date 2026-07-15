@@ -20,7 +20,10 @@ func TestMarkRead_Channel(t *testing.T) {
 }
 
 func TestMarkRead_Thread(t *testing.T) {
-	fake := &fakeAPI{}
+	fake := &fakeAPI{
+		thread:   &model.PostList{Posts: map[string]*model.Post{"p1": {Id: "p1", ChannelId: "c1"}}},
+		resolved: &model.Channel{Id: "c1", TeamId: "t1"},
+	}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1"}
 	var buf bytes.Buffer
 	if err := runMarkRead(app, "p1", "thread", &buf); err != nil {

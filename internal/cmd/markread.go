@@ -57,15 +57,21 @@ func runMarkRead(app *appContext, id, typ string, _ io.Writer) error {
 // marks the thread as read for the current user.
 func markThreadRead(ctx context.Context, app *appContext, id string) error {
 	pl, err := app.api.PostThread(ctx, id)
-	teamID := ""
-	if err == nil {
-		if root, ok := threadRoot(pl, id); ok {
-			if ch, cerr := app.api.Channel(ctx, root.ChannelId); cerr == nil {
-				teamID = ch.TeamId
-			}
-		}
+	if err != nil {
+		return fmt.Errorf("resolve thread %q: %w", id, err)
 	}
-	if uerr := app.api.UpdateThreadRead(ctx, app.userID, teamID, id); uerr != nil {
+	root, ok := threadRoot(pl, id)
+	if !ok {
+		return fmt.Errorf("thread root %q not found", id)
+	}
+	ch, cerr := app.api.Channel(ctx, root.ChannelId)
+	if cerr != nil {
+		return fmt.Errorf("resolve channel %q for thread: %w", root.ChannelId, cerr)
+	}
+	if ch.TeamId == "" {
+		return fmt.Errorf("thread %q has no team; cannot mark as read", id)
+	}
+	if uerr := app.api.UpdateThreadRead(ctx, app.userID, ch.TeamId, id); uerr != nil {
 		return uerr
 	}
 	fmt.Fprintf(os.Stderr, "Marked thread as read.\n")
