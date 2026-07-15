@@ -76,7 +76,20 @@ func completeChannelCompletions(app *appContext) []string {
 			out = append(out, c.DisplayName)
 		}
 	}
-	return append(out, dmCompletions(ctx, app, peers)...)
+	return append(append(out, dmCompletions(ctx, app, peers)...), resolveSelfCompletion(ctx, app))
+}
+
+// resolveSelfCompletion returns the @username form of the authenticated user
+// so their own DM address is always offered as a completion.
+func resolveSelfCompletion(ctx context.Context, app *appContext) string {
+	if app.username != "" {
+		return "@" + app.username
+	}
+	u, err := app.api.Me(ctx)
+	if err != nil || u == nil {
+		return ""
+	}
+	return "@" + u.Username
 }
 
 // dmCompletions maps DM peer user IDs to @username completions, falling back
