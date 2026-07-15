@@ -30,6 +30,7 @@ type fakeAPI struct {
 	uploadResp *model.FileUploadResponse
 	loggedOut  bool
 	err        error
+	statusCode int //nolint:unused // reserved for tests asserting status code extraction
 
 	viewedChannel string
 	readThread    string
