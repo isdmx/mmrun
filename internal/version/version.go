@@ -66,6 +66,13 @@ func Get() Info {
 // String renders a one-line human-readable version summary.
 func String() string {
 	i := Get()
-	return fmt.Sprintf("mmrun %s (commit %s, built %s, %s %s/%s)",
-		i.Version, i.Commit, i.Date, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	var extra string
+	if i.Commit != "" && i.Commit != "none" {
+		extra = fmt.Sprintf(" (commit %s, built %s, %s %s/%s)",
+			i.Commit, i.Date, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	} else {
+		extra = fmt.Sprintf(" (built %s, %s %s/%s)",
+			i.Date, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	}
+	return "mmrun " + i.Version + extra
 }
