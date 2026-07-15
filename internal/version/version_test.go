@@ -15,6 +15,16 @@ func TestGet_DefaultsPopulated(t *testing.T) {
 	}
 }
 
+func TestGet_DateFallback(t *testing.T) {
+	prev := Date
+	Date = "unknown"
+	t.Cleanup(func() { Date = prev })
+	info := Get()
+	if info.Date == "unknown" {
+		t.Error("Date should fall back to current time when unknown")
+	}
+}
+
 func TestString_ContainsVersionAndCommit(t *testing.T) {
 	Version = "v1.2.3"
 	Commit = "abc1234"

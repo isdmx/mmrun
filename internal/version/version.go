@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
+	"time"
 )
 
 // These variables are overridden at build time with:
@@ -32,26 +33,30 @@ type Info struct {
 
 // Get returns the current build metadata.
 func Get() Info {
-	v, c := Version, Commit
-	if v == "dev" {
-		if info, ok := debug.ReadBuildInfo(); ok {
-			if info.Main.Version != "" && info.Main.Version != "(devel)" {
-				v = info.Main.Version
-			}
-			for _, s := range info.Settings {
-				if s.Key == "vcs.revision" && c == "none" {
-					c = s.Value
-					if len(c) > 7 {
-						c = c[:7]
-					}
+	v, c, d := Version, Commit, Date
+	if info, ok := debug.ReadBuildInfo(); ok {
+		if v == "dev" && info.Main.Version != "" && info.Main.Version != "(devel)" {
+			v = info.Main.Version
+		}
+		for _, s := range info.Settings {
+			if s.Key == "vcs.revision" && c == "none" {
+				c = s.Value
+				if len(c) > 7 {
+					c = c[:7]
 				}
 			}
+			if s.Key == "vcs.time" && d == "unknown" {
+				d = s.Value
+			}
 		}
+	}
+	if d == "unknown" {
+		d = time.Now().UTC().Format(time.RFC3339)
 	}
 	return Info{
 		Version:   v,
 		Commit:    c,
-		Date:      Date,
+		Date:      d,
 		GoVersion: runtime.Version(),
 		OS:        runtime.GOOS,
 		Arch:      runtime.GOARCH,
@@ -62,5 +67,5 @@ func Get() Info {
 func String() string {
 	i := Get()
 	return fmt.Sprintf("mmrun %s (commit %s, built %s, %s %s/%s)",
-		i.Version, i.Commit, Date, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		i.Version, i.Commit, i.Date, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 }
