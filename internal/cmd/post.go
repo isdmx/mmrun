@@ -37,6 +37,7 @@ func newPostCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringArrayVar(&opts.files, "file", nil, "path to a file to attach (repeatable)")
 	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "resolve the target and preview without posting")
+	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
 

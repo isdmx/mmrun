@@ -31,6 +31,7 @@ func newTailCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
+	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
 

@@ -43,6 +43,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full message text instead of a single-line preview")
 	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. time,user,message or -permalink)")
 	cmd.Flags().BoolVar(&opts.markRead, "mark-read", false, "mark the channel as read after fetching messages")
+	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
 

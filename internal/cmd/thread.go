@@ -53,6 +53,7 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	threadRead.Flags().BoolVar(&markRead, "mark-read", false, "mark the thread as read")
+	threadRead.ValidArgsFunction = completePostIDArg
 	thread.AddCommand(threadRead)
 	return thread
 }

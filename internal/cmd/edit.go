@@ -13,7 +13,7 @@ import (
 func newEditCmd(outputMode *string) *cobra.Command {
 	edit := &cobra.Command{Use: "edit", Short: "Edit and delete posts"}
 
-	edit.AddCommand(&cobra.Command{
+	editPost := &cobra.Command{
 		Use:   "edit <post-id> <msg>",
 		Short: "Edit the text of a post",
 		Args:  cobra.ExactArgs(2),
@@ -24,7 +24,9 @@ func newEditCmd(outputMode *string) *cobra.Command {
 			}
 			return runEdit(app, args[0], args[1], cmd.OutOrStdout())
 		},
-	})
+	}
+	editPost.ValidArgsFunction = completePostIDArg
+	edit.AddCommand(editPost)
 
 	var yes bool
 	del := &cobra.Command{
@@ -43,6 +45,7 @@ func newEditCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	del.Flags().BoolVar(&yes, "yes", false, "confirm deletion")
+	del.ValidArgsFunction = completePostIDArg
 	edit.AddCommand(del)
 
 	return edit

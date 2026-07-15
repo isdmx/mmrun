@@ -28,6 +28,7 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&teamName, "team", "", "team to search within (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&full, "full", false, "show full message text instead of a single-line preview")
 	cmd.Flags().StringVar(&columns, "columns", "", "columns to show (e.g. time,user,message or -permalink)")
+	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 

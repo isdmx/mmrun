@@ -62,6 +62,7 @@ func newFileCmd(outputMode *string) *cobra.Command {
 	upload.Flags().StringVar(&message, "message", "", "message to accompany the upload")
 	upload.Flags().StringVar(&uploadTeam, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	upload.Flags().BoolVar(&uploadDryRun, "dry-run", false, "resolve the target and preview without uploading")
+	upload.ValidArgsFunction = completeChannelArg
 
 	file.AddCommand(download, upload)
 	return file

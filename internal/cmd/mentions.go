@@ -31,6 +31,7 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().IntVar(&limit, "limit", 0, "max results (default from config)")
 	cmd.Flags().BoolVar(&full, "full", false, "show full message text")
 	cmd.Flags().StringVar(&columns, "columns", "", "columns to show")
+	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 
