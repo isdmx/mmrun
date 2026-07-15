@@ -40,6 +40,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newChannelCmd(&opts.outputMode))
 	root.AddCommand(newUserCmd(&opts.outputMode))
 	root.AddCommand(newPostCmd(&opts.outputMode))
+	root.AddCommand(newReplyCmd(&opts.outputMode))
 	root.AddCommand(newReadCmd(&opts.outputMode))
 	root.AddCommand(newThreadCmd(&opts.outputMode))
 	root.AddCommand(newMarkReadCmd(&opts.outputMode))
