@@ -27,7 +27,8 @@ type Session struct {
 	ContextName string    `json:"context_name,omitempty"`
 }
 
-type store struct {
+// Store holds all named session contexts and the currently active one.
+type Store struct {
 	Current  string              `json:"current"`
 	Contexts map[string]*Session `json:"contexts"`
 }
@@ -40,7 +41,7 @@ func Save(s *Session) error {
 	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 		return err
 	}
-	st := &store{Current: "default", Contexts: map[string]*Session{"default": s}}
+	st := &Store{Current: "default", Contexts: map[string]*Session{"default": s}}
 	data, err := json.MarshalIndent(st, "", "  ")
 	if err != nil {
 		return err
@@ -57,7 +58,7 @@ func Load() (*Session, error) {
 		}
 		return nil, err
 	}
-	var st store
+	var st Store
 	if err := json.Unmarshal(data, &st); err != nil {
 		return nil, err
 	}
@@ -66,6 +67,39 @@ func Load() (*Session, error) {
 		return nil, ErrNoSession
 	}
 	return s, nil
+}
+
+// LoadAll returns the full store including all contexts. The caller must check
+// for ErrNoSession when no session file exists yet.
+func LoadAll() (*Store, error) {
+	data, err := os.ReadFile(path())
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, ErrNoSession
+		}
+		return nil, err
+	}
+	var st Store
+	if err := json.Unmarshal(data, &st); err != nil {
+		return nil, err
+	}
+	if st.Contexts == nil {
+		st.Contexts = map[string]*Session{st.Current: {ServerURL: "", Token: "", UserID: ""}}
+	}
+	return &st, nil
+}
+
+// SaveStore writes a full store back to disk.
+func SaveStore(st *Store) error {
+	p := path()
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(st, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(p, data, 0o600)
 }
 
 // Clear removes the session file.
