@@ -82,8 +82,15 @@ mmrun tail incidents
 | `file download <id>` | Download a post's attachments or a single file (`--out <dir>`) |
 | `file upload <channel> <path>...` | Upload one or more files (`--message`, `--dry-run`) |
 | `open <id>` | Open a post or channel in the browser |
+| `read <channel> --tail` | Fetch messages then enter live-stream mode |
+| `post <channel> [--editor] <msg>` | Post a message; `--editor` opens `$EDITOR` |
+| `context list/add/use/remove` | Manage session contexts (multi-account) |
 | `config` | View/edit configuration (`path`, `list`, `get`, `set`, `generate`) |
 | `version` / `--version` | Print version, commit, and build date |
+
+**Color themes** — `config set theme dark|light|minimal` (or `--color auto|always|never`).
+Dark is the default. Themes drive username colors, timestamps, channel names,
+code-block syntax highlighting (via chroma), and more. Human-mode only.
 
 **Output formats** — `read`, `search`, `thread read`, and `mentions` accept
 `--format table|tree` and `--threads-only`. Tree mode shows replies indented
