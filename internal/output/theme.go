@@ -1,7 +1,5 @@
 package output
 
-import _ "github.com/alecthomas/chroma/v2" // syntax highlighting for code blocks
-
 // Theme defines ANSI styling for each visual element in human-mode output.
 // A nil/zero-value Theme means "no styling".
 type Theme struct {

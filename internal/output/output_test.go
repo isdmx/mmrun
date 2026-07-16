@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 )
@@ -89,5 +90,29 @@ func TestNoColorEnv(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	if colorEnabled("always", true) {
 		t.Error("NO_COLOR must force color off")
+	}
+}
+
+func TestThemeColor_DarkProducesANSI(t *testing.T) {
+	r := NewWithOptions("human", os.Stdout, Options{Theme: "dark"})
+	hr, ok := r.(humanRenderer)
+	if !ok || !hr.color {
+		t.Error("dark theme should produce colored human renderer")
+	}
+}
+
+func TestHumanCodeBlock(t *testing.T) {
+	var buf bytes.Buffer
+	r := humanRenderer{theme: DarkTheme, color: true}
+	res := Result{
+		Columns: []string{"user", "message"},
+		Rows:    []Row{{"user": "alice", "message": "hey\n```python\nprint(1)\n```\ndone"}},
+	}
+	if err := r.Render(&buf, res); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "\x1b[") {
+		t.Error("code block should contain ANSI from chroma")
 	}
 }
