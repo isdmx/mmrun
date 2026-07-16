@@ -51,6 +51,7 @@ brews:
     repository:
       owner: isdmx
       name: homebrew-tap
+      token: "{{ .Env.TAP_TOKEN }}"
     homepage: "https://github.com/isdmx/mmrun"
     description: "Scriptable Mattermost CLI client"
     license: "MIT"
