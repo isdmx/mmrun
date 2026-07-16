@@ -45,3 +45,12 @@ changelog:
 release:
   draft: false
   prerelease: auto
+
+brews:
+  - name: mmrun
+    repository:
+      owner: isdmx
+      name: homebrew-tap
+    homepage: "https://github.com/isdmx/mmrun"
+    description: "Scriptable Mattermost CLI client"
+    license: "MIT"
