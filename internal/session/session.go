@@ -18,12 +18,13 @@ var ErrNoSession = errors.New("no active session; run 'mmrun auth login'")
 // Session is the persisted, keyed session store. A single "default" context is
 // used now; the map keeps the format stable for future multi-account support.
 type Session struct {
-	ServerURL string    `json:"server_url"`
-	Token     string    `json:"token"`
-	UserID    string    `json:"user_id"`
-	Username  string    `json:"username,omitempty"`
-	SessionID string    `json:"session_id,omitempty"`
-	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	ServerURL   string    `json:"server_url"`
+	Token       string    `json:"token"`
+	UserID      string    `json:"user_id"`
+	Username    string    `json:"username,omitempty"`
+	SessionID   string    `json:"session_id,omitempty"`
+	ExpiresAt   time.Time `json:"expires_at,omitempty"`
+	ContextName string    `json:"context_name,omitempty"`
 }
 
 type store struct {

@@ -23,6 +23,7 @@ type Config struct {
 	DownloadDir_  string `toml:"download_dir"` //nolint:revive // toml field paired with accessor method
 	Columns       string `toml:"columns"`
 	Format_       string `toml:"format"` //nolint:revive // toml field paired with accessor method
+	Theme_        string `toml:"theme"`  //nolint:revive // toml field paired with accessor method
 }
 
 // DefaultLimit returns the configured page size, or 50.
@@ -63,6 +64,14 @@ func (c *Config) Format() string {
 		return "table"
 	}
 	return c.Format_
+}
+
+// Theme returns the configured color theme: dark (default), light, or minimal.
+func (c *Config) Theme() string {
+	if c.Theme_ == "" {
+		return "dark"
+	}
+	return c.Theme_
 }
 
 // PathSet holds resolved XDG file locations.

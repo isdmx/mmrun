@@ -76,6 +76,19 @@ func TestPost_Stdin(t *testing.T) {
 	}
 }
 
+func TestPost_Editor(t *testing.T) {
+	t.Setenv("EDITOR", "cat")
+	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, created: &model.Post{Id: "p1"}}
+	app := &appContext{api: fake, outputMode: "ai"}
+	var buf bytes.Buffer
+	if err := runPost(app, "eng/general", "prefill", postOpts{editor: true}, &buf); err != nil {
+		t.Fatalf("runPost editor: %v", err)
+	}
+	if fake.lastPost == nil || !strings.Contains(fake.lastPost.Message, "prefill") {
+		t.Errorf("editor message not posted: %+v", fake.lastPost)
+	}
+}
+
 func TestPost_DryRun(t *testing.T) {
 	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}}
 	app := &appContext{api: fake, outputMode: "ai"}

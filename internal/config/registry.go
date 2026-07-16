@@ -119,6 +119,13 @@ func settingsFor(c *Config) map[string]setting {
 			get:         func(c *Config) string { return c.Format() },
 			set:         func(c *Config, v string) error { c.Format_ = v; return nil },
 		},
+		"theme": {
+			description: "color theme: dark|light|minimal",
+			def:         "dark",
+			validate:    enumValidator("dark", "light", "minimal"),
+			get:         func(c *Config) string { return c.Theme() },
+			set:         func(c *Config, v string) error { c.Theme_ = v; return nil },
+		},
 	}
 }
 

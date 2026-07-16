@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -17,6 +19,7 @@ type postOpts struct {
 	files   []string
 	team    string
 	dryRun  bool
+	editor  bool
 }
 
 func newPostCmd(outputMode *string) *cobra.Command {
@@ -37,6 +40,7 @@ func newPostCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringArrayVar(&opts.files, "file", nil, "path to a file to attach (repeatable)")
 	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "resolve the target and preview without posting")
+	cmd.Flags().BoolVar(&opts.editor, "editor", false, "open $EDITOR for the message")
 	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
@@ -50,6 +54,13 @@ func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Wr
 			return err
 		}
 		msg = string(data)
+	}
+	if opts.editor {
+		var err error
+		msg, err = editorMessage(ctx, msg)
+		if err != nil {
+			return err
+		}
 	}
 	ch, err := app.resolveChannel(ctx, channelRef, opts.team)
 	if err != nil {
@@ -79,4 +90,40 @@ func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Wr
 	}
 	res := output.Result{Text: created.Id}
 	return app.render(w, res)
+}
+
+// editorMessage opens $EDITOR (falling back to $VISUAL, then vim) on a temp
+// file pre-filled with the given text and returns the edited content.
+func editorMessage(ctx context.Context, prefill string) (string, error) {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = os.Getenv("VISUAL")
+	}
+	if editor == "" {
+		editor = "vim"
+	}
+	f, err := os.CreateTemp("", "mmrun-msg-*.md")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = os.Remove(f.Name()) }()
+	if prefill != "" {
+		if _, err := f.WriteString(prefill); err != nil {
+			_ = f.Close()
+			return "", err
+		}
+	}
+	_ = f.Close()
+	cmd := exec.CommandContext(ctx, editor, f.Name()) //nolint:gosec // launching the user's own $EDITOR is the feature
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("editor %q: %w", editor, err)
+	}
+	data, err := os.ReadFile(f.Name())
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
