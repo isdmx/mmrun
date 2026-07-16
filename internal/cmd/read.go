@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"sort"
 	"time"
 
@@ -22,6 +23,7 @@ type readOpts struct {
 	markRead    bool
 	format      string
 	threadsOnly bool
+	tail        bool
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
@@ -47,6 +49,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.markRead, "mark-read", false, "mark the channel as read after fetching messages")
 	cmd.Flags().StringVar(&opts.format, "format", "", "output format: table|tree (default from config)")
 	cmd.Flags().BoolVar(&opts.threadsOnly, "threads-only", false, "show only root posts (no replies)")
+	cmd.Flags().BoolVar(&opts.tail, "tail", false, "enter live-stream mode after fetching messages")
 	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
@@ -122,6 +125,13 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 			return herr
 		}
 		fmt.Fprintf(os.Stderr, "Marked %s as read.\n", markCh.Name)
+	}
+	if opts.tail {
+		tctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer stop()
+		if terr := runTail(tctx, app, channelRef, opts.team, w); terr != nil {
+			fmt.Fprintf(os.Stderr, "tail: %v\n", terr)
+		}
 	}
 	return aerr
 }

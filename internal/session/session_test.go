@@ -46,6 +46,20 @@ func TestSaveLoad_Username(t *testing.T) {
 	}
 }
 
+func TestSaveLoad_ContextName(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	if err := Save(&Session{ServerURL: "https://x", Token: "t", UserID: "u1", ContextName: "work"}); err != nil {
+		t.Fatal(err)
+	}
+	out, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.ContextName != "work" {
+		t.Errorf("ContextName = %q, want work", out.ContextName)
+	}
+}
+
 func TestLoad_MissingReturnsErrNoSession(t *testing.T) {
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	if _, err := Load(); !errors.Is(err, ErrNoSession) {

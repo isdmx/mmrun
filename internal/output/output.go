@@ -31,6 +31,7 @@ type Options struct {
 	Color     string   // "auto" | "always" | "never" | "" (=auto)
 	Highlight []string // terms to emphasize in cells (human mode only)
 	Format    string   // "table" (default) or "tree"
+	Theme     string   // "dark"|"light"|"minimal"|""
 }
 
 // colorEnabled reports whether ANSI color should be emitted for the given color
@@ -92,5 +93,13 @@ func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
 	if opts.Format == "tree" {
 		return treeRenderer{color: colorEnabled(opts.Color, isTTY)}
 	}
-	return humanRenderer{color: colorEnabled(opts.Color, isTTY), highlight: opts.Highlight}
+	theme := resolveTheme(opts.Color, opts.Theme)
+	if theme.IsNone() {
+		return humanRenderer{color: false, highlight: opts.Highlight}
+	}
+	colorMode := opts.Color
+	if opts.Theme != "" && (colorMode == "" || colorMode == "auto") {
+		colorMode = "always"
+	}
+	return humanRenderer{color: colorEnabled(colorMode, isTTY), highlight: opts.Highlight, theme: theme}
 }

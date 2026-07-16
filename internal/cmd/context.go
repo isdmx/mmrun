@@ -29,6 +29,7 @@ type appContext struct {
 	downloadDir    string
 	columnsDefault string
 	format         string
+	theme          string
 }
 
 // requireSession builds an authenticated appContext from the stored session and
@@ -43,13 +44,14 @@ func requireSession(outputMode string) (*appContext, error) {
 		}
 		cfg, cfgerr := config.Load()
 		var previewLen, defaultLimit int
-		var downloadDir, columnsDefault, format string
+		var downloadDir, columnsDefault, format, theme string
 		if cfgerr == nil && cfg != nil {
 			previewLen = cfg.PreviewLen()
 			defaultLimit = cfg.DefaultLimit()
 			downloadDir = cfg.DownloadDir()
 			columnsDefault = cfg.Columns
 			format = cfg.Format()
+			theme = cfg.Theme()
 		}
 		if previewLen == 0 {
 			previewLen = 140
@@ -70,6 +72,7 @@ func requireSession(outputMode string) (*appContext, error) {
 			username:       u.Username,
 			mustLogin:      true,
 			color:          "auto",
+			theme:          theme,
 			previewLen:     previewLen,
 			defaultLimit:   defaultLimit,
 			downloadDir:    downloadDir,
@@ -107,6 +110,7 @@ func requireSession(outputMode string) (*appContext, error) {
 		userID:         sess.UserID,
 		username:       username,
 		color:          cfg.Color(),
+		theme:          cfg.Theme(),
 		previewLen:     cfg.PreviewLen(),
 		defaultLimit:   cfg.DefaultLimit(),
 		downloadDir:    cfg.DownloadDir(),
@@ -117,7 +121,7 @@ func requireSession(outputMode string) (*appContext, error) {
 
 // render writes a Result using the app's output mode, color, and highlight terms.
 func (a *appContext) render(w io.Writer, res output.Result) error {
-	opts := output.Options{Color: a.color, Format: a.format}
+	opts := output.Options{Color: a.color, Format: a.format, Theme: a.theme}
 	if a.username != "" {
 		opts.Highlight = []string{"@" + a.username}
 	}
@@ -125,7 +129,7 @@ func (a *appContext) render(w io.Writer, res output.Result) error {
 }
 
 func (a *appContext) renderWith(w io.Writer, res output.Result, format string) error {
-	opts := output.Options{Color: a.color, Format: a.format}
+	opts := output.Options{Color: a.color, Format: a.format, Theme: a.theme}
 	if format != "" {
 		opts.Format = format
 	}
