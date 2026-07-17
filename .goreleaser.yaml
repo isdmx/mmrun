@@ -56,8 +56,3 @@ brews:
     description: "Scriptable Mattermost CLI client"
     license: "MIT"
 
-dockers:
-  - image_templates:
-      - "ghcr.io/isdmx/mmrun:{{ .Version }}"
-      - "ghcr.io/isdmx/mmrun:latest"
-    dockerfile: Dockerfile
