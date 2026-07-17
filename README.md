@@ -66,14 +66,15 @@ mmrun tail incidents
 | `channel` / `channel list` | List channels (`--type public\|private\|dm\|group\|all`) |
 | `channel search <term>` | Find channels by name, including ones you have not joined |
 | `user search <term>` | Find users by name/username |
-| `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--full`, `--columns`, `--mark-read`) |
+| `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--full`, `--columns`, `--mark-read, --style chat|tree|table, --time-format relative`) |
 | `post <channel> <msg>` | Post a message; use `-` to read from stdin (`--reply-to <id>`, repeatable `--file <path>`, `--dry-run`) |
-| `tail <channel>` | Stream new messages live until interrupted |
+| `tail <channel>` | Stream new messages live (--mentions-only, --from <user>) |
 | `search <query>` | Server-side message search (`--team`, `--full`, `--columns`) |
 | `thread` / `thread list` | List followed threads (`--unread`, `--limit`, `--columns`) |
 | `thread read <id> --mark-read` | Read a thread, optionally mark it read |
 | `react add <post-id> <emoji>` | Add a reaction |
 | `react remove <post-id> <emoji> --yes` | Remove your reaction (requires `--yes`) |
+| `pin add <post-id>` / `pin remove <post-id> --yes` | Pin or unpin a post |
 | `edit edit <post-id> <msg>` | Edit a post's text |
 | `edit delete <post-id> --yes` | Delete a post (requires `--yes`) |
 | `mentions [--team] [--limit]` | Search posts that mention you |
@@ -91,6 +92,11 @@ mmrun tail incidents
 **Color themes** — `config set theme dark|light|minimal` (or `--color auto|always|never`).
 Dark is the default. Themes drive username colors, timestamps, channel names,
 code-block syntax highlighting (via chroma), and more. Human-mode only.
+
+**Message styles** — `--style table|chat|tree` controls layout. `chat` shows user+time header + message body + metadata footer. `tree` adds ●/↳ thread markers. Config: `config set style chat`.
+
+**Docker** — `docker pull ghcr.io/isdmx/mmrun`.
+
 
 **Output formats** — `read`, `search`, `thread read`, and `mentions` accept
 `--format table|tree` and `--threads-only`. Tree mode shows replies indented
