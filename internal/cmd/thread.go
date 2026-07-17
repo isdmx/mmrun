@@ -151,7 +151,7 @@ func runThreadRead(app *appContext, postID string, markRead bool, format string,
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Thread", chronological(pl), "", true, messageColumns)
+	res := renderMessages(ctx, app, "Thread", chronological(pl), "", true, messageColumns, true)
 	if aerr := app.renderWith(w, res, format); aerr != nil {
 		return aerr
 	}

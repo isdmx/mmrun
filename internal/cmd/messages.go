@@ -19,8 +19,9 @@ var messageColumns = []string{"time", "channel", "user", "files", "reactions", "
 // resolves user IDs to usernames (one batched call), channel IDs to readable
 // names (cached), constructs permalinks when a team is known, and collapses
 // message whitespace for non-JSON output.
-func renderMessages(ctx context.Context, app *appContext, title string, posts []*model.Post, permalinkTeam string, full bool, columns []string) output.Result {
+func renderMessages(ctx context.Context, app *appContext, title string, posts []*model.Post, permalinkTeam string, full bool, columns []string, hideChannel bool) output.Result {
 	usernames := resolveUsernames(ctx, app, posts)
+	statuses := resolveStatuses(ctx, app, posts)
 	reactions := resolveReactions(ctx, app, posts)
 	channelNames := map[string]string{}
 	clean := app.outputMode != "json" && !full
@@ -34,20 +35,25 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 		user := usernames[p.UserId]
 		if user == "" {
 			user = p.UserId
+		} else {
+			user = "@" + user
 		}
+		user = statuses[p.UserId] + user
 		msg := p.Message
 		if clean {
 			msg = preview(msg, app.previewLen)
 		}
 		row := output.Row{
 			"time":      time.UnixMilli(p.CreateAt).Format(time.RFC3339),
-			"channel":   channelLabel(ctx, app, p.ChannelId, channelNames),
 			"user":      user,
 			"files":     fileSummary(p),
 			"reactions": reactions[p.Id],
 			"root_id":   p.RootId,
 			"post_id":   p.Id,
 			"message":   msg,
+		}
+		if !hideChannel {
+			row["channel"] = channelLabel(ctx, app, p.ChannelId, channelNames)
 		}
 		if server != "" && permalinkTeam != "" {
 			row["permalink"] = server + "/" + permalinkTeam + "/pl/" + p.Id
@@ -224,6 +230,36 @@ func sortedKeys(m map[string]int) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func resolveStatuses(ctx context.Context, app *appContext, posts []*model.Post) map[string]string {
+	seen := map[string]bool{}
+	var ids []string
+	for _, p := range posts {
+		if p == nil || seen[p.UserId] {
+			continue
+		}
+		seen[p.UserId] = true
+		ids = append(ids, p.UserId)
+	}
+	ss, err := app.api.UsersStatuses(ctx, ids)
+	if err != nil {
+		return map[string]string{}
+	}
+	out := map[string]string{}
+	for _, s := range ss {
+		switch s.Status {
+		case "online":
+			out[s.UserId] = "🟢"
+		case "away":
+			out[s.UserId] = "🌙"
+		case "dnd":
+			out[s.UserId] = "⛔"
+		default:
+			out[s.UserId] = "⛔"
+		}
+	}
+	return out
 }
 
 func filterRoots(posts []*model.Post) []*model.Post {

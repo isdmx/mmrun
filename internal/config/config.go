@@ -22,8 +22,10 @@ type Config struct {
 	ColorMode     string `toml:"color"`
 	DownloadDir_  string `toml:"download_dir"` //nolint:revive // toml field paired with accessor method
 	Columns       string `toml:"columns"`
-	Format_       string `toml:"format"` //nolint:revive // toml field paired with accessor method
-	Theme_        string `toml:"theme"`  //nolint:revive // toml field paired with accessor method
+	Format_       string `toml:"format"`      //nolint:revive // toml field paired with accessor method
+	Theme_        string `toml:"theme"`       //nolint:revive // toml field paired with accessor method
+	Style_        string `toml:"style"`       //nolint:revive // toml field paired with accessor method
+	TimeFormat_   string `toml:"time_format"` //nolint:revive // toml field paired with accessor method
 }
 
 // DefaultLimit returns the configured page size, or 50.
@@ -72,6 +74,22 @@ func (c *Config) Theme() string {
 		return "dark"
 	}
 	return c.Theme_
+}
+
+// Style returns the configured human output style: table (default), chat, or tree.
+func (c *Config) Style() string {
+	if c.Style_ == "" {
+		return "table"
+	}
+	return c.Style_
+}
+
+// TimeFormat returns the configured timestamp format: rfc3339 (default) or relative.
+func (c *Config) TimeFormat() string {
+	if c.TimeFormat_ == "" {
+		return "rfc3339"
+	}
+	return c.TimeFormat_
 }
 
 // PathSet holds resolved XDG file locations.

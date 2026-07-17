@@ -30,6 +30,8 @@ type appContext struct {
 	columnsDefault string
 	format         string
 	theme          string
+	style          string
+	timeFormat     string
 }
 
 // requireSession builds an authenticated appContext from the stored session and
@@ -44,7 +46,7 @@ func requireSession(outputMode string) (*appContext, error) {
 		}
 		cfg, cfgerr := config.Load()
 		var previewLen, defaultLimit int
-		var downloadDir, columnsDefault, format, theme string
+		var downloadDir, columnsDefault, format, theme, style, timeFormat string
 		if cfgerr == nil && cfg != nil {
 			previewLen = cfg.PreviewLen()
 			defaultLimit = cfg.DefaultLimit()
@@ -52,6 +54,8 @@ func requireSession(outputMode string) (*appContext, error) {
 			columnsDefault = cfg.Columns
 			format = cfg.Format()
 			theme = cfg.Theme()
+			style = cfg.Style()
+			timeFormat = cfg.TimeFormat()
 		}
 		if previewLen == 0 {
 			previewLen = 140
@@ -64,6 +68,12 @@ func requireSession(outputMode string) (*appContext, error) {
 		}
 		if format == "" {
 			format = "table"
+		}
+		if style == "" {
+			style = "table"
+		}
+		if timeFormat == "" {
+			timeFormat = "rfc3339"
 		}
 		return &appContext{
 			api:            cl,
@@ -78,6 +88,8 @@ func requireSession(outputMode string) (*appContext, error) {
 			downloadDir:    downloadDir,
 			columnsDefault: columnsDefault,
 			format:         format,
+			style:          style,
+			timeFormat:     timeFormat,
 		}, nil
 	}
 
@@ -116,22 +128,31 @@ func requireSession(outputMode string) (*appContext, error) {
 		downloadDir:    cfg.DownloadDir(),
 		columnsDefault: cfg.Columns,
 		format:         cfg.Format(),
+		style:          cfg.Style(),
+		timeFormat:     cfg.TimeFormat(),
 	}, nil
 }
 
 // render writes a Result using the app's output mode, color, and highlight terms.
 func (a *appContext) render(w io.Writer, res output.Result) error {
-	opts := output.Options{Color: a.color, Format: a.format, Theme: a.theme}
-	if a.username != "" {
-		opts.Highlight = []string{"@" + a.username}
-	}
-	return output.NewWithOptions(a.outputMode, stdoutFile(w), opts).Render(w, res)
+	return a.renderOpts(w, res, "", "")
 }
 
 func (a *appContext) renderWith(w io.Writer, res output.Result, format string) error {
-	opts := output.Options{Color: a.color, Format: a.format, Theme: a.theme}
+	return a.renderOpts(w, res, format, "")
+}
+
+// renderOpts renders with optional per-command format and style overrides.
+func (a *appContext) renderOpts(w io.Writer, res output.Result, format, style string) error {
+	opts := output.Options{
+		Color: a.color, Theme: a.theme,
+		Format: a.format, Style: a.style, TimeFormat: a.timeFormat,
+	}
 	if format != "" {
 		opts.Format = format
+	}
+	if style != "" {
+		opts.Style = style
 	}
 	if a.username != "" {
 		opts.Highlight = []string{"@" + a.username}

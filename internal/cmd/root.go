@@ -50,6 +50,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newReactCmd(&opts.outputMode))
 	root.AddCommand(newEditCmd(&opts.outputMode))
 	root.AddCommand(newMentionsCmd(&opts.outputMode))
+	root.AddCommand(newPinCmd(&opts.outputMode))
 	root.AddCommand(newVersionCmd(&opts.outputMode))
 	root.AddCommand(newConfigCmd(&opts.outputMode))
 	root.AddCommand(newOpenCmd(&opts.outputMode))

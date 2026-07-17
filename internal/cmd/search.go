@@ -52,7 +52,7 @@ func runSearch(app *appContext, query, teamName string, full bool, columns, form
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Search results", postsInOrder(pl), resolvedTeam, full, cols)
+	res := renderMessages(ctx, app, "Search results", postsInOrder(pl), resolvedTeam, full, cols, false)
 	return app.renderWith(w, res, format)
 }
 

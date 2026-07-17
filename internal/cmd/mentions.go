@@ -102,6 +102,6 @@ func runMentions(app *appContext, teamName, columns string, limit int, full bool
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Mentions", allPosts, permalinkTeam, full, cols)
+	res := renderMessages(ctx, app, "Mentions", allPosts, permalinkTeam, full, cols, false)
 	return app.renderWith(w, res, format)
 }

@@ -34,8 +34,7 @@ func TestRead_IncludesActionableColumns(t *testing.T) {
 	for _, want := range []string{
 		"post_id=p1",
 		"root_id=r0",
-		"user=bob",                    // resolved username, not the ID
-		"channel=General",             // resolved channel name
+		"user=@bob",                   // resolved username with @ prefix
 		"pl/p1",                       // permalink
 		"line one line two with tabs", // whitespace collapsed to single line
 	} {
@@ -106,5 +105,41 @@ func TestChannelLabel_SelfDM(t *testing.T) {
 	got := channelLabel(context.Background(), app, "d1", map[string]string{})
 	if got != "you" {
 		t.Errorf("self-DM label = %q, want you", got)
+	}
+}
+
+func TestStatusDots(t *testing.T) {
+	fake := &fakeAPI{statuses: []*model.Status{
+		{UserId: "u2", Status: "online"},
+		{UserId: "u3", Status: "offline"},
+	}}
+	app := &appContext{api: fake}
+	posts := []*model.Post{{UserId: "u2"}, {UserId: "u3"}}
+	got := resolveStatuses(context.Background(), app, posts)
+	if got["u2"] != "🟢" {
+		t.Errorf("online = %q, want 🟢", got["u2"])
+	}
+	if got["u3"] != "⛔" {
+		t.Errorf("offline = %q, want ⛔", got["u3"])
+	}
+}
+
+func TestReadHideChannel(t *testing.T) {
+	pl := &model.PostList{
+		Order: []string{"p1"},
+		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "hi", UserId: "u2", ChannelId: "c1", CreateAt: 1000}},
+	}
+	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}}}
+	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runRead(app, "eng/general", readOpts{limit: 50}, &buf); err != nil {
+		t.Fatalf("runRead: %v", err)
+	}
+	out := buf.String()
+	if strings.Contains(out, "channel=general") || strings.Contains(out, "channel=General") {
+		t.Error("read should hide channel column (redundant)")
+	}
+	if !strings.Contains(out, "user=@bob") {
+		t.Error("user should have @ prefix")
 	}
 }
