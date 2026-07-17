@@ -118,7 +118,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 		posts = filterRoots(posts)
 	}
 
-	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns)
+	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true)
 	aerr := app.renderWith(w, res, opts.format)
 	if opts.markRead && markCh != nil {
 		if herr := app.api.ViewChannel(ctx, app.userID, markCh.Id); herr != nil {

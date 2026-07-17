@@ -79,7 +79,7 @@ func TestRead_ColumnsFilter(t *testing.T) {
 		t.Fatalf("runRead: %v", err)
 	}
 	out := buf.String()
-	if !strings.Contains(out, "user=bob") || !strings.Contains(out, "message=hello") {
+	if !strings.Contains(out, "user=@bob") || !strings.Contains(out, "message=hello") {
 		t.Errorf("missing selected columns:\n%s", out)
 	}
 	if strings.Contains(out, "post_id=") || strings.Contains(out, "permalink=") {
