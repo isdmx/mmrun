@@ -129,7 +129,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	if opts.tail {
 		tctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer stop()
-		if terr := runTail(tctx, app, channelRef, opts.team, w); terr != nil {
+		if terr := runTail(tctx, app, channelRef, opts.team, false, "", w); terr != nil {
 			fmt.Fprintf(os.Stderr, "tail: %v\n", terr)
 		}
 	}

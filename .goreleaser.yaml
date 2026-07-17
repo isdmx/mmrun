@@ -55,3 +55,12 @@ brews:
     homepage: "https://github.com/isdmx/mmrun"
     description: "Scriptable Mattermost CLI client"
     license: "MIT"
+
+dockers:
+  - image_templates:
+      - "ghcr.io/isdmx/mmrun:{{ .Version }}"
+      - "ghcr.io/isdmx/mmrun:latest"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--platform=linux/arm64"
