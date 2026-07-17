@@ -28,10 +28,12 @@ type Renderer interface {
 
 // Options tune rendering (colorization and highlighting) for human output.
 type Options struct {
-	Color     string   // "auto" | "always" | "never" | "" (=auto)
-	Highlight []string // terms to emphasize in cells (human mode only)
-	Format    string   // "table" (default) or "tree"
-	Theme     string   // "dark"|"light"|"minimal"|""
+	Color      string   // "auto" | "always" | "never" | "" (=auto)
+	Highlight  []string // terms to emphasize in cells (human mode only)
+	Format     string   // "table" (default) or "tree"
+	Theme      string   // "dark"|"light"|"minimal"|""
+	Style      string   // "table"|"chat"|"tree" (default "table")
+	TimeFormat string   // "rfc3339"|"relative" (default "rfc3339")
 }
 
 // colorEnabled reports whether ANSI color should be emitted for the given color
@@ -93,13 +95,21 @@ func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
 	if opts.Format == "tree" {
 		return treeRenderer{color: colorEnabled(opts.Color, isTTY)}
 	}
-	theme := resolveTheme(opts.Color, opts.Theme)
-	if theme.IsNone() {
+	themeObj := resolveTheme(opts.Color, opts.Theme)
+	if themeObj.IsNone() {
 		return humanRenderer{color: false, highlight: opts.Highlight}
 	}
 	colorMode := opts.Color
 	if opts.Theme != "" && (colorMode == "" || colorMode == "auto") {
 		colorMode = "always"
 	}
-	return humanRenderer{color: colorEnabled(colorMode, isTTY), highlight: opts.Highlight, theme: theme}
+	col := colorEnabled(colorMode, isTTY)
+	switch opts.Style {
+	case "chat":
+		return chatRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat}
+	case "tree":
+		return treeBlockRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat}
+	default:
+		return humanRenderer{color: col, highlight: opts.Highlight, theme: themeObj}
+	}
 }
