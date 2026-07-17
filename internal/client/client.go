@@ -47,6 +47,9 @@ type API interface {
 	ReactionsForPost(ctx context.Context, postID string) ([]*model.Reaction, error)
 	PatchPost(ctx context.Context, postID, msg string) (*model.Post, error)
 	DeletePost(ctx context.Context, postID string) error
+	PinPost(ctx context.Context, postID string) error
+	UnpinPost(ctx context.Context, postID string) error
+	UsersStatuses(ctx context.Context, userIDs []string) ([]*model.Status, error)
 	ServerURL() string
 	ResolveChannel(ctx context.Context, ref, defaultTeam, selfUserID string) (*model.Channel, error)
 	StreamPosts(ctx context.Context) (<-chan WSEvent, <-chan error, error)
@@ -246,4 +249,19 @@ func (c *Client) PatchPost(ctx context.Context, postID, msg string) (*model.Post
 func (c *Client) DeletePost(ctx context.Context, postID string) error {
 	_, err := c.mm.DeletePost(ctx, postID)
 	return err
+}
+
+func (c *Client) PinPost(ctx context.Context, postID string) error {
+	_, err := c.mm.PinPost(ctx, postID)
+	return err
+}
+
+func (c *Client) UnpinPost(ctx context.Context, postID string) error {
+	_, err := c.mm.UnpinPost(ctx, postID)
+	return err
+}
+
+func (c *Client) UsersStatuses(ctx context.Context, userIDs []string) ([]*model.Status, error) {
+	ss, _, err := c.mm.GetUsersStatusesByIds(ctx, userIDs)
+	return ss, err
 }

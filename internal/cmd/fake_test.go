@@ -39,6 +39,9 @@ type fakeAPI struct {
 	reactions     []*model.Reaction
 	patched       *model.Post
 	deleted       string
+	pinned        string
+	unpinned      string
+	statuses      []*model.Status
 
 	streamEvents chan client.WSEvent
 	streamErrs   chan error
@@ -191,4 +194,10 @@ func (f *fakeAPI) StreamPosts(context.Context) (<-chan client.WSEvent, <-chan er
 		f.streamErrs = make(chan error, 1)
 	}
 	return f.streamEvents, f.streamErrs, nil
+}
+
+func (f *fakeAPI) PinPost(_ context.Context, id string) error   { f.pinned = id; return f.err }
+func (f *fakeAPI) UnpinPost(_ context.Context, id string) error { f.unpinned = id; return f.err }
+func (f *fakeAPI) UsersStatuses(context.Context, []string) ([]*model.Status, error) {
+	return f.statuses, f.err
 }
