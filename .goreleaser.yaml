@@ -61,6 +61,3 @@ dockers:
       - "ghcr.io/isdmx/mmrun:{{ .Version }}"
       - "ghcr.io/isdmx/mmrun:latest"
     dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--platform=linux/arm64"
