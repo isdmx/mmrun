@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -13,6 +14,9 @@ import (
 func TestCopy(t *testing.T) {
 	dir := t.TempDir()
 	script := filepath.Join(dir, "pbcopy")
+	if runtime.GOOS == "linux" {
+		script = filepath.Join(dir, "xclip")
+	}
 	if err := os.WriteFile(script, []byte("#!/bin/sh\ncat >>"+filepath.Join(dir, "clipboard")+"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -47,6 +51,9 @@ func TestCopy(t *testing.T) {
 func TestCopyToClipboard(t *testing.T) {
 	dir := t.TempDir()
 	script := filepath.Join(dir, "pbcopy")
+	if runtime.GOOS == "linux" {
+		script = filepath.Join(dir, "xclip")
+	}
 	if err := os.WriteFile(script, []byte("#!/bin/sh\ncat >>"+filepath.Join(dir, "clipboard")+"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
