@@ -31,7 +31,14 @@ type API interface {
 	SearchChannels(ctx context.Context, teamID, term string) ([]*model.Channel, error)
 	CreateDirectChannel(ctx context.Context, userID1, userID2 string) (*model.Channel, error)
 	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
-	Search(ctx context.Context, teamID, terms string, orSearch bool) (*model.PostList, error)
+	Search(ctx context.Context, teamID, terms string, orSearch bool, limit, page int) (*model.PostList, error)
+	PinnedPosts(ctx context.Context, channelID string) (*model.PostList, error)
+	ChannelStats(ctx context.Context, channelID string) (*model.ChannelStats, error)
+	ChannelUnread(ctx context.Context, channelID, userID string) (*model.ChannelUnread, error)
+	FlaggedPosts(ctx context.Context, userID, teamID string, page, perPage int) (*model.PostList, error)
+	FlagPost(ctx context.Context, postID string) error
+	UnflagPost(ctx context.Context, postID string) error
+	Bots(ctx context.Context) ([]*model.Bot, error)
 	PostsForChannel(ctx context.Context, channelID string, perPage int) (*model.PostList, error)
 	PostsSince(ctx context.Context, channelID string, since int64) (*model.PostList, error)
 	PostThread(ctx context.Context, postID string) (*model.PostList, error)
@@ -160,9 +167,51 @@ func (c *Client) CreatePost(ctx context.Context, post *model.Post) (*model.Post,
 	return p, err
 }
 
-func (c *Client) Search(ctx context.Context, teamID, terms string, orSearch bool) (*model.PostList, error) {
-	pl, _, err := c.mm.SearchPosts(ctx, teamID, terms, orSearch)
+func (c *Client) Search(ctx context.Context, teamID, terms string, orSearch bool, limit, page int) (*model.PostList, error) {
+	p := &model.SearchParameter{Terms: &terms, IsOrSearch: &orSearch}
+	if limit > 0 {
+		p.PerPage = &limit
+	}
+	if page > 0 {
+		p.Page = &page
+	}
+	pl, _, err := c.mm.SearchPostsWithParams(ctx, teamID, p)
 	return pl, err
+}
+
+func (c *Client) PinnedPosts(ctx context.Context, channelID string) (*model.PostList, error) {
+	pl, _, err := c.mm.GetPinnedPosts(ctx, channelID, "")
+	return pl, err
+}
+
+func (c *Client) ChannelStats(ctx context.Context, channelID string) (*model.ChannelStats, error) {
+	s, _, err := c.mm.GetChannelStats(ctx, channelID, "", false)
+	return s, err
+}
+
+func (c *Client) ChannelUnread(ctx context.Context, channelID, userID string) (*model.ChannelUnread, error) {
+	u, _, err := c.mm.GetChannelUnread(ctx, channelID, userID)
+	return u, err
+}
+
+func (c *Client) FlaggedPosts(ctx context.Context, userID, teamID string, page, perPage int) (*model.PostList, error) {
+	pl, _, err := c.mm.GetFlaggedPostsForUserInTeam(ctx, userID, teamID, page, perPage)
+	return pl, err
+}
+
+func (c *Client) FlagPost(ctx context.Context, postID string) error {
+	_, err := c.mm.FlagPostForContentReview(ctx, postID, &model.FlagContentRequest{Reason: "flagged by mmrun"})
+	return err
+}
+
+func (c *Client) UnflagPost(ctx context.Context, postID string) error {
+	_, err := c.mm.RemoveFlaggedPost(ctx, postID, &model.FlagContentActionRequest{Action: "unflag"})
+	return err
+}
+
+func (c *Client) Bots(ctx context.Context) ([]*model.Bot, error) {
+	b, _, err := c.mm.GetBots(ctx, 0, 200, "")
+	return b, err
 }
 
 func (c *Client) PostsForChannel(ctx context.Context, channelID string, perPage int) (*model.PostList, error) {

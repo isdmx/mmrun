@@ -75,6 +75,11 @@ mmrun tail incidents
 | `react add <post-id> <emoji>` | Add a reaction |
 | `react remove <post-id> <emoji> --yes` | Remove your reaction (requires `--yes`) |
 | `pin add <post-id>` / `pin remove <post-id> --yes` | Pin or unpin a post |
+| `pinned <channel>` | List pinned posts in a channel |
+| `stats <channel>` | Show channel member/pinned counts |
+| `flagged [--team] [--limit]` | List posts you flagged |
+| `flag add <post-id>` / `flag remove <post-id> --yes` | Flag or unflag a post |
+| `copy <post-id>` | Copy post permalink to clipboard |
 | `edit edit <post-id> <msg>` | Edit a post's text |
 | `edit delete <post-id> --yes` | Delete a post (requires `--yes`) |
 | `mentions [--team] [--limit]` | Search posts that mention you |

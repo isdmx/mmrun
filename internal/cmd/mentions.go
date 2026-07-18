@@ -16,6 +16,8 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	var full bool
 	var columns string
 	var format string
+	var style string
+	var timeFormat string
 	cmd := &cobra.Command{
 		Use:   "mentions",
 		Short: "Search posts that mention you",
@@ -25,7 +27,7 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runMentions(app, teamName, columns, limit, full, format, cmd.OutOrStdout())
+			return runMentions(app, teamName, columns, limit, full, format, style, timeFormat, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&teamName, "team", "", "restrict to this team")
@@ -33,11 +35,13 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&full, "full", false, "show full message text")
 	cmd.Flags().StringVar(&columns, "columns", "", "columns to show")
 	cmd.Flags().StringVar(&format, "format", "", "output format: table|tree")
+	cmd.Flags().StringVar(&style, "style", "", "output style: table|chat|tree (default from config)")
+	cmd.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
 	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 
-func runMentions(app *appContext, teamName, columns string, limit int, full bool, format string, w io.Writer) error {
+func runMentions(app *appContext, teamName, columns string, limit int, full bool, format, style, timeFormat string, w io.Writer) error {
 	ctx := context.Background()
 	if app.username == "" {
 		return fmt.Errorf("no username in session; re-login to store it")
@@ -51,7 +55,7 @@ func runMentions(app *appContext, teamName, columns string, limit int, full bool
 	seen := map[string]bool{}
 
 	collect := func(teamID string) error {
-		pl, err := app.api.Search(ctx, teamID, term, false)
+		pl, err := app.api.Search(ctx, teamID, term, false, limit, 0)
 		if err != nil {
 			return err
 		}
@@ -103,5 +107,5 @@ func runMentions(app *appContext, teamName, columns string, limit int, full bool
 		return err
 	}
 	res := renderMessages(ctx, app, "Mentions", allPosts, permalinkTeam, full, cols, false)
-	return app.renderWith(w, res, format)
+	return app.renderOpts(w, res, format, style, timeFormat)
 }

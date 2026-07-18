@@ -14,18 +14,25 @@ const appName = "mmrun"
 
 // Config holds user preferences persisted to config.toml.
 type Config struct {
-	ServerURL     string `toml:"server_url"`
-	DefaultTeam   string `toml:"default_team"`
-	OutputMode    string `toml:"output_mode"`
-	DefaultLimit_ int    `toml:"default_limit"` //nolint:revive // toml field paired with accessor method
-	PreviewLen_   int    `toml:"preview_len"`   //nolint:revive // toml field paired with accessor method
-	ColorMode     string `toml:"color"`
-	DownloadDir_  string `toml:"download_dir"` //nolint:revive // toml field paired with accessor method
-	Columns       string `toml:"columns"`
-	Format_       string `toml:"format"`      //nolint:revive // toml field paired with accessor method
-	Theme_        string `toml:"theme"`       //nolint:revive // toml field paired with accessor method
-	Style_        string `toml:"style"`       //nolint:revive // toml field paired with accessor method
-	TimeFormat_   string `toml:"time_format"` //nolint:revive // toml field paired with accessor method
+	ServerURL     string                   `toml:"server_url"`
+	DefaultTeam   string                   `toml:"default_team"`
+	OutputMode    string                   `toml:"output_mode"`
+	DefaultLimit_ int                      `toml:"default_limit"` //nolint:revive // toml field paired with accessor method
+	PreviewLen_   int                      `toml:"preview_len"`   //nolint:revive // toml field paired with accessor method
+	ColorMode     string                   `toml:"color"`
+	DownloadDir_  string                   `toml:"download_dir"` //nolint:revive // toml field paired with accessor method
+	Columns       string                   `toml:"columns"`
+	Format_       string                   `toml:"format"`      //nolint:revive // toml field paired with accessor method
+	Theme_        string                   `toml:"theme"`       //nolint:revive // toml field paired with accessor method
+	Style_        string                   `toml:"style"`       //nolint:revive // toml field paired with accessor method
+	TimeFormat_   string                   `toml:"time_format"` //nolint:revive // toml field paired with accessor method
+	Contexts      map[string]ContextConfig `toml:"context"`
+}
+
+// ContextConfig holds per-context configuration overrides.
+type ContextConfig struct {
+	DefaultTeam string            `toml:"default_team"`
+	Aliases     map[string]string `toml:"aliases"`
 }
 
 // DefaultLimit returns the configured page size, or 50.

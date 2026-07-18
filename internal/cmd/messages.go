@@ -52,6 +52,17 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 			"post_id":   p.Id,
 			"message":   msg,
 		}
+		_type := ""
+		for _, bid := range app.botIDs {
+			if p.UserId == bid {
+				_type = "bot"
+				break
+			}
+		}
+		if _type == "" && p.Type != "" && p.Type != "custom_system" {
+			_type = "system"
+		}
+		row["_type"] = _type
 		if !hideChannel {
 			row["channel"] = channelLabel(ctx, app, p.ChannelId, channelNames)
 		}

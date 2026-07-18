@@ -73,7 +73,7 @@ func TestColorMode(t *testing.T) {
 
 func TestHumanHighlight(t *testing.T) {
 	var buf bytes.Buffer
-	r := humanRenderer{color: true, highlight: []string{"@alice"}}
+	r := humanRenderer{color: true, highlight: []string{"@alice"}, timeFormat: "rfc3339"}
 	res := Result{
 		Columns: []string{"user", "message"},
 		Rows:    []Row{{"user": "@alice", "message": "hi @alice"}},
@@ -103,7 +103,7 @@ func TestThemeColor_DarkProducesANSI(t *testing.T) {
 
 func TestHumanCodeBlock(t *testing.T) {
 	var buf bytes.Buffer
-	r := humanRenderer{theme: DarkTheme, color: true}
+	r := humanRenderer{theme: DarkTheme, color: true, timeFormat: "rfc3339"}
 	res := Result{
 		Columns: []string{"user", "message"},
 		Rows:    []Row{{"user": "alice", "message": "hey\n```python\nprint(1)\n```\ndone"}},

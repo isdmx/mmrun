@@ -51,9 +51,14 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newEditCmd(&opts.outputMode))
 	root.AddCommand(newMentionsCmd(&opts.outputMode))
 	root.AddCommand(newPinCmd(&opts.outputMode))
+	root.AddCommand(newPinnedCmd(&opts.outputMode))
+	root.AddCommand(newStatsCmd(&opts.outputMode))
+	root.AddCommand(newFlaggedCmd(&opts.outputMode))
+	root.AddCommand(newFlagCmd(&opts.outputMode))
 	root.AddCommand(newVersionCmd(&opts.outputMode))
 	root.AddCommand(newConfigCmd(&opts.outputMode))
 	root.AddCommand(newOpenCmd(&opts.outputMode))
+	root.AddCommand(newCopyCmd(&opts.outputMode))
 	root.AddCommand(newContextCmd(&opts.outputMode))
 	return root
 }

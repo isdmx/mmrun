@@ -41,6 +41,8 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 
 	var markRead bool
 	var format string
+	var style string
+	var timeFormat string
 	threadRead := &cobra.Command{
 		Use:   "read <post-id>",
 		Short: "Read a thread and optionally mark it as read",
@@ -50,11 +52,13 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runThreadRead(app, args[0], markRead, format, cmd.OutOrStdout())
+			return runThreadRead(app, args[0], markRead, format, "", "", cmd.OutOrStdout())
 		},
 	}
 	threadRead.Flags().BoolVar(&markRead, "mark-read", false, "mark the thread as read")
 	threadRead.Flags().StringVar(&format, "format", "", "output format: table|tree")
+	threadRead.Flags().StringVar(&style, "style", "", "output style: table|chat|tree (default from config)")
+	threadRead.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
 	threadRead.ValidArgsFunction = completePostIDArg
 	thread.AddCommand(threadRead)
 	return thread
@@ -145,14 +149,14 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 	return app.render(w, res)
 }
 
-func runThreadRead(app *appContext, postID string, markRead bool, format string, w io.Writer) error {
+func runThreadRead(app *appContext, postID string, markRead bool, format, style, timeFormat string, w io.Writer) error {
 	ctx := context.Background()
 	pl, err := app.api.PostThread(ctx, postID)
 	if err != nil {
 		return err
 	}
 	res := renderMessages(ctx, app, "Thread", chronological(pl), "", true, messageColumns, true)
-	if aerr := app.renderWith(w, res, format); aerr != nil {
+	if aerr := app.renderOpts(w, res, format, style, timeFormat); aerr != nil {
 		return aerr
 	}
 	if markRead {

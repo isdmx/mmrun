@@ -89,6 +89,44 @@ func TestPost_Editor(t *testing.T) {
 	}
 }
 
+func TestPost_ImplicitEditor(t *testing.T) {
+	// Two-arg call: explicit message is used directly.
+	t.Run("explicit message", func(t *testing.T) {
+		fake := &fakeAPI{
+			resolved: &model.Channel{Id: "c1"},
+			created:  &model.Post{Id: "p1"},
+		}
+		app := &appContext{api: fake, outputMode: "ai"}
+		var buf bytes.Buffer
+		if err := runPost(app, "eng/general", "hello world", postOpts{}, &buf); err != nil {
+			t.Fatalf("runPost: %v", err)
+		}
+		if fake.lastPost == nil || fake.lastPost.Message != "hello world" {
+			t.Errorf("expected 'hello world', got %+v", fake.lastPost)
+		}
+	})
+
+	// One-arg call without TTY: posts empty message (no editor spawn).
+	t.Run("no tty no message", func(t *testing.T) {
+		fake := &fakeAPI{
+			resolved: &model.Channel{Id: "c1"},
+			created:  &model.Post{Id: "p1"},
+		}
+		app := &appContext{api: fake, outputMode: "ai"}
+		var buf bytes.Buffer
+		if err := runPost(app, "eng/general", "", postOpts{}, &buf); err != nil {
+			t.Fatalf("runPost: %v", err)
+		}
+		if fake.lastPost == nil {
+			t.Fatal("expected a post")
+		}
+		// No $EDITOR invoked since stdin is not a TTY.
+		if fake.lastPost.Message != "" {
+			t.Errorf("expected empty message, got %q", fake.lastPost.Message)
+		}
+	})
+}
+
 func TestPost_DryRun(t *testing.T) {
 	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}}
 	app := &appContext{api: fake, outputMode: "ai"}

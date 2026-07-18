@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
@@ -14,9 +15,10 @@ import (
 )
 
 type humanRenderer struct {
-	color     bool
-	highlight []string
-	theme     Theme
+	color      bool
+	highlight  []string
+	theme      Theme
+	timeFormat string
 }
 
 const (
@@ -57,9 +59,23 @@ func (h humanRenderer) Render(w io.Writer, r Result) error {
 		return err
 	}
 	for _, row := range r.Rows {
+		rowType := row["_type"]
+		var prefix, suffix string
+		if rowType == "bot" && h.theme.BotStyle != "" {
+			prefix, suffix = h.theme.BotStyle, ansiReset
+		} else if rowType == "system" && h.theme.SystemStyle != "" {
+			prefix, suffix = h.theme.SystemStyle, ansiReset
+		}
 		cells := make([]string, 0, len(r.Columns))
 		for _, c := range r.Columns {
-			cells = append(cells, h.emphasize(h.styleCell(c, row[c])))
+			if c == "_type" {
+				continue
+			}
+			val := h.emphasize(h.styleCell(c, row[c]))
+			if prefix != "" {
+				val = prefix + val + suffix
+			}
+			cells = append(cells, val)
 		}
 		if _, err := fmt.Fprintln(tw, strings.Join(cells, "\t")); err != nil {
 			return err
@@ -69,6 +85,11 @@ func (h humanRenderer) Render(w io.Writer, r Result) error {
 }
 
 func (h humanRenderer) styleCell(col, val string) string {
+	if col == "time" && h.timeFormat == "relative" {
+		if t, err := time.Parse(time.RFC3339, val); err == nil {
+			val = reltime(t)
+		}
+	}
 	if !h.color || h.theme.IsNone() {
 		return val
 	}
