@@ -54,6 +54,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newVersionCmd(&opts.outputMode))
 	root.AddCommand(newConfigCmd(&opts.outputMode))
 	root.AddCommand(newOpenCmd(&opts.outputMode))
+	root.AddCommand(newCopyCmd(&opts.outputMode))
 	root.AddCommand(newContextCmd(&opts.outputMode))
 	return root
 }

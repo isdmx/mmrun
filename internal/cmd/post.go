@@ -10,6 +10,7 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/isdmx/mmrun/internal/output"
 )
@@ -25,15 +26,19 @@ type postOpts struct {
 func newPostCmd(outputMode *string) *cobra.Command {
 	var opts postOpts
 	cmd := &cobra.Command{
-		Use:   "post <channel> <message>",
+		Use:   "post <channel> [message]",
 		Short: "Post a message to a channel or DM",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
 			}
-			return runPost(app, args[0], args[1], opts, cmd.OutOrStdout())
+			messageText := ""
+			if len(args) >= 2 {
+				messageText = args[1]
+			}
+			return runPost(app, args[0], messageText, opts, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&opts.replyTo, "reply-to", "", "root post ID to reply in-thread")
@@ -45,9 +50,17 @@ func newPostCmd(outputMode *string) *cobra.Command {
 	return cmd
 }
 
-func runPost(app *appContext, channelRef, message string, opts postOpts, w io.Writer) error {
+func runPost(app *appContext, channelRef, argsMessage string, opts postOpts, w io.Writer) error {
 	ctx := context.Background()
-	msg := message
+	msg := argsMessage
+	isTTY := term.IsTerminal(int(os.Stdin.Fd()))
+	if argsMessage == "" && isTTY {
+		var err error
+		msg, err = editorMessage(ctx, argsMessage)
+		if err != nil {
+			return err
+		}
+	}
 	if msg == "-" {
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {

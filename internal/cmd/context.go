@@ -32,6 +32,8 @@ type appContext struct {
 	theme          string
 	style          string
 	timeFormat     string
+	botIDs         []string
+	aliases        map[string]string
 }
 
 // requireSession builds an authenticated appContext from the stored session and
@@ -39,60 +41,52 @@ type appContext struct {
 func requireSession(outputMode string) (*appContext, error) {
 	d, err := envAuth()
 	if err == nil {
-		cl := client.NewWithToken(d.url, d.token)
-		u, uerr := cl.Me(context.Background())
-		if uerr != nil {
-			return nil, fmt.Errorf("env auth token validation failed: %w", uerr)
-		}
-		cfg, cfgerr := config.Load()
-		var previewLen, defaultLimit int
-		var downloadDir, columnsDefault, format, theme, style, timeFormat string
-		if cfgerr == nil && cfg != nil {
-			previewLen = cfg.PreviewLen()
-			defaultLimit = cfg.DefaultLimit()
-			downloadDir = cfg.DownloadDir()
-			columnsDefault = cfg.Columns
-			format = cfg.Format()
-			theme = cfg.Theme()
-			style = cfg.Style()
-			timeFormat = cfg.TimeFormat()
-		}
-		if previewLen == 0 {
-			previewLen = 140
-		}
-		if defaultLimit == 0 {
-			defaultLimit = 50
-		}
-		if downloadDir == "" {
-			downloadDir = config.Paths().DownloadDir
-		}
-		if format == "" {
-			format = "table"
-		}
-		if style == "" {
-			style = "table"
-		}
-		if timeFormat == "" {
-			timeFormat = "rfc3339"
-		}
-		return &appContext{
-			api:            cl,
-			outputMode:     outputMode,
-			userID:         u.Id,
-			username:       u.Username,
-			mustLogin:      true,
-			color:          "auto",
-			theme:          theme,
-			previewLen:     previewLen,
-			defaultLimit:   defaultLimit,
-			downloadDir:    downloadDir,
-			columnsDefault: columnsDefault,
-			format:         format,
-			style:          style,
-			timeFormat:     timeFormat,
-		}, nil
+		return initFromEnvAuth(d, outputMode)
 	}
+	return initFromSession(outputMode)
+}
 
+// initFromEnvAuth builds an appContext from environment variable credentials.
+func initFromEnvAuth(d envAuthData, outputMode string) (*appContext, error) {
+	cl := client.NewWithToken(d.url, d.token)
+	u, uerr := cl.Me(context.Background())
+	if uerr != nil {
+		return nil, fmt.Errorf("env auth token validation failed: %w", uerr)
+	}
+	cfg, cfgerr := config.Load()
+	var botIDs []string
+	if bots, berr := cl.Bots(context.Background()); berr == nil {
+		for _, b := range bots {
+			botIDs = append(botIDs, b.UserId)
+		}
+	}
+	prefs := configWithDefaults(cfg, cfgerr)
+	var aliases map[string]string
+	if cfg != nil && cfg.Contexts != nil && cfg.Contexts["default"].Aliases != nil {
+		aliases = cfg.Contexts["default"].Aliases
+	}
+	return &appContext{
+		api:            cl,
+		outputMode:     outputMode,
+		userID:         u.Id,
+		username:       u.Username,
+		mustLogin:      true,
+		color:          "auto",
+		theme:          prefs.theme,
+		previewLen:     prefs.previewLen,
+		defaultLimit:   prefs.defaultLimit,
+		downloadDir:    prefs.downloadDir,
+		columnsDefault: prefs.columnsDefault,
+		format:         prefs.format,
+		style:          prefs.style,
+		timeFormat:     prefs.timeFormat,
+		botIDs:         botIDs,
+		aliases:        aliases,
+	}, nil
+}
+
+// initFromSession builds an appContext from the persistent session file.
+func initFromSession(outputMode string) (*appContext, error) {
 	sess, err := session.Load()
 	if err != nil {
 		return nil, err
@@ -115,6 +109,24 @@ func requireSession(outputMode string) (*appContext, error) {
 		}
 	}
 
+	var aliases map[string]string
+	if cfg.Contexts != nil {
+		ctxName := sess.ContextName
+		if ctxName == "" {
+			ctxName = "default"
+		}
+		if ctxCfg, ok := cfg.Contexts[ctxName]; ok {
+			aliases = ctxCfg.Aliases
+		}
+	}
+
+	var botIDs []string
+	if bots, berr := cl.Bots(context.Background()); berr == nil {
+		for _, b := range bots {
+			botIDs = append(botIDs, b.UserId)
+		}
+	}
+
 	return &appContext{
 		api:            cl,
 		outputMode:     outputMode,
@@ -130,7 +142,49 @@ func requireSession(outputMode string) (*appContext, error) {
 		format:         cfg.Format(),
 		style:          cfg.Style(),
 		timeFormat:     cfg.TimeFormat(),
+		botIDs:         botIDs,
+		aliases:        aliases,
 	}, nil
+}
+
+type configPrefs struct {
+	previewLen, defaultLimit         int
+	downloadDir, columnsDefault      string
+	format, theme, style, timeFormat string
+}
+
+// configWithDefaults applies defaults to zero config values.
+func configWithDefaults(cfg *config.Config, loadErr error) configPrefs {
+	var p configPrefs
+	if loadErr == nil && cfg != nil {
+		p.previewLen = cfg.PreviewLen()
+		p.defaultLimit = cfg.DefaultLimit()
+		p.downloadDir = cfg.DownloadDir()
+		p.columnsDefault = cfg.Columns
+		p.format = cfg.Format()
+		p.theme = cfg.Theme()
+		p.style = cfg.Style()
+		p.timeFormat = cfg.TimeFormat()
+	}
+	if p.previewLen == 0 {
+		p.previewLen = 140
+	}
+	if p.defaultLimit == 0 {
+		p.defaultLimit = 50
+	}
+	if p.downloadDir == "" {
+		p.downloadDir = config.Paths().DownloadDir
+	}
+	if p.format == "" {
+		p.format = "table"
+	}
+	if p.style == "" {
+		p.style = "table"
+	}
+	if p.timeFormat == "" {
+		p.timeFormat = "rfc3339"
+	}
+	return p
 }
 
 // render writes a Result using the app's output mode, color, and highlight terms.
@@ -173,6 +227,9 @@ func stdoutFile(w io.Writer) *os.File {
 // command's --team flag) as the default team when set, otherwise the configured
 // default team. A bare channel name still falls back to the user's sole team.
 func (a *appContext) resolveChannel(ctx context.Context, ref, teamOverride string) (*model.Channel, error) {
+	if expanded, ok := a.aliases[ref]; ok {
+		ref = expanded
+	}
 	team := teamOverride
 	if team == "" {
 		team = a.defaultTeam
