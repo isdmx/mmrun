@@ -40,7 +40,7 @@ func runSearch(app *appContext, query, teamName string, full bool, columns, form
 	if err != nil {
 		return err
 	}
-	pl, err := app.api.Search(ctx, teamID, query, false)
+	pl, err := app.api.Search(ctx, teamID, query, false, 0, 0)
 	if err != nil {
 		return err
 	}

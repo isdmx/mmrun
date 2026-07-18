@@ -51,7 +51,7 @@ func runMentions(app *appContext, teamName, columns string, limit int, full bool
 	seen := map[string]bool{}
 
 	collect := func(teamID string) error {
-		pl, err := app.api.Search(ctx, teamID, term, false)
+		pl, err := app.api.Search(ctx, teamID, term, false, 0, 0)
 		if err != nil {
 			return err
 		}

@@ -46,6 +46,13 @@ type fakeAPI struct {
 	streamEvents chan client.WSEvent
 	streamErrs   chan error
 	streamErr    error
+
+	pinnedPosts   *model.PostList
+	channelStats  *model.ChannelStats
+	channelUnread *model.ChannelUnread
+	flaggedPosts  *model.PostList
+	bots          []*model.Bot
+	postFlagged   string
 }
 
 var _ client.API = (*fakeAPI)(nil)
@@ -110,9 +117,29 @@ func (f *fakeAPI) CreatePost(_ context.Context, p *model.Post) (*model.Post, err
 	return f.created, f.err
 }
 
-func (f *fakeAPI) Search(context.Context, string, string, bool) (*model.PostList, error) {
+func (f *fakeAPI) Search(context.Context, string, string, bool, int, int) (*model.PostList, error) {
 	return f.posts, f.err
 }
+
+func (f *fakeAPI) PinnedPosts(context.Context, string) (*model.PostList, error) {
+	return f.pinnedPosts, f.err
+}
+
+func (f *fakeAPI) ChannelStats(context.Context, string) (*model.ChannelStats, error) {
+	return f.channelStats, f.err
+}
+
+func (f *fakeAPI) ChannelUnread(context.Context, string, string) (*model.ChannelUnread, error) {
+	return f.channelUnread, f.err
+}
+
+func (f *fakeAPI) FlaggedPosts(context.Context, string, string, int, int) (*model.PostList, error) {
+	return f.flaggedPosts, f.err
+}
+
+func (f *fakeAPI) FlagPost(_ context.Context, id string) error  { f.postFlagged = id; return f.err }
+func (f *fakeAPI) UnflagPost(_ context.Context, _ string) error { f.postFlagged = ""; return f.err }
+func (f *fakeAPI) Bots(context.Context) ([]*model.Bot, error)   { return f.bots, f.err }
 
 func (f *fakeAPI) PostsForChannel(context.Context, string, int) (*model.PostList, error) {
 	return f.posts, f.err
