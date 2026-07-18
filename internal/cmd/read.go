@@ -14,16 +14,17 @@ import (
 )
 
 type readOpts struct {
-	limit       int
-	since       string
-	thread      string
-	team        string
-	full        bool
-	columns     string
-	markRead    bool
-	format      string
-	threadsOnly bool
-	tail        bool
+	limit         int
+	since         string
+	thread        string
+	team          string
+	full          bool
+	columns       string
+	markRead      bool
+	format        string
+	threadsOnly   bool
+	tail          bool
+	unreadSummary bool
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
@@ -50,6 +51,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&opts.format, "format", "", "output format: table|tree (default from config)")
 	cmd.Flags().BoolVar(&opts.threadsOnly, "threads-only", false, "show only root posts (no replies)")
 	cmd.Flags().BoolVar(&opts.tail, "tail", false, "enter live-stream mode after fetching messages")
+	cmd.Flags().BoolVar(&opts.unreadSummary, "unread-summary", false, "show unread/mention counts after fetching")
 	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
@@ -84,6 +86,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	}
 
 	var pl *model.PostList
+	var ch *model.Channel
 	title := "Messages"
 	permalinkTeam := ""
 	var markCh *model.Channel
@@ -93,7 +96,8 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 		pl, err = app.api.PostThread(ctx, opts.thread)
 		title = "Thread"
 	default:
-		ch, rerr := app.resolveChannel(ctx, channelRef, opts.team)
+		var rerr error
+		ch, rerr = app.resolveChannel(ctx, channelRef, opts.team)
 		if rerr != nil {
 			return rerr
 		}
@@ -125,6 +129,16 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 			return herr
 		}
 		fmt.Fprintf(os.Stderr, "Marked %s as read.\n", markCh.Name)
+	}
+	if opts.unreadSummary {
+		unread, err := app.api.ChannelUnread(ctx, ch.Id, app.userID)
+		if err == nil && unread != nil {
+			if unread.MsgCount > 0 {
+				fmt.Fprintf(os.Stderr, "%d unread, %d mentions\n", unread.MsgCount, unread.MentionCount)
+			} else {
+				fmt.Fprintln(os.Stderr, "all read")
+			}
+		}
 	}
 	if opts.tail {
 		tctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
