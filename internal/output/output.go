@@ -92,12 +92,17 @@ func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
 	if mode != "human" {
 		return rendererFor(mode, false)
 	}
-	if opts.Format == "tree" {
-		return treeRenderer{color: colorEnabled(opts.Color, isTTY)}
+	if opts.Format == "tree" || opts.Style == "tree" {
+		themeObj := resolveTheme(opts.Color, opts.Theme)
+		col := colorEnabled(opts.Color, isTTY)
+		if themeObj.IsNone() {
+			col = false
+		}
+		return treeBlockRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat}
 	}
 	themeObj := resolveTheme(opts.Color, opts.Theme)
 	if themeObj.IsNone() {
-		return humanRenderer{color: false, highlight: opts.Highlight}
+		return humanRenderer{color: false, highlight: opts.Highlight, timeFormat: opts.TimeFormat}
 	}
 	colorMode := opts.Color
 	if opts.Theme != "" && (colorMode == "" || colorMode == "auto") {
@@ -110,6 +115,6 @@ func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
 	case "tree":
 		return treeBlockRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat}
 	default:
-		return humanRenderer{color: col, highlight: opts.Highlight, theme: themeObj}
+		return humanRenderer{color: col, highlight: opts.Highlight, theme: themeObj, timeFormat: opts.TimeFormat}
 	}
 }

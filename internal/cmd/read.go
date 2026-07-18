@@ -22,6 +22,8 @@ type readOpts struct {
 	columns       string
 	markRead      bool
 	format        string
+	style         string
+	timeFormat    string
 	threadsOnly   bool
 	tail          bool
 	unreadSummary bool
@@ -49,6 +51,8 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. time,user,message or -permalink)")
 	cmd.Flags().BoolVar(&opts.markRead, "mark-read", false, "mark the channel as read after fetching messages")
 	cmd.Flags().StringVar(&opts.format, "format", "", "output format: table|tree (default from config)")
+	cmd.Flags().StringVar(&opts.style, "style", "", "output style: table|chat|tree (default from config)")
+	cmd.Flags().StringVar(&opts.timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
 	cmd.Flags().BoolVar(&opts.threadsOnly, "threads-only", false, "show only root posts (no replies)")
 	cmd.Flags().BoolVar(&opts.tail, "tail", false, "enter live-stream mode after fetching messages")
 	cmd.Flags().BoolVar(&opts.unreadSummary, "unread-summary", false, "show unread/mention counts after fetching")
@@ -123,7 +127,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	}
 
 	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true)
-	aerr := app.renderWith(w, res, opts.format)
+	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat)
 	if opts.markRead && markCh != nil {
 		if herr := app.api.ViewChannel(ctx, app.userID, markCh.Id); herr != nil {
 			return herr

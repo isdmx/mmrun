@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
@@ -14,9 +15,10 @@ import (
 )
 
 type humanRenderer struct {
-	color     bool
-	highlight []string
-	theme     Theme
+	color      bool
+	highlight  []string
+	theme      Theme
+	timeFormat string
 }
 
 const (
@@ -83,6 +85,11 @@ func (h humanRenderer) Render(w io.Writer, r Result) error {
 }
 
 func (h humanRenderer) styleCell(col, val string) string {
+	if col == "time" && h.timeFormat == "relative" {
+		if t, err := time.Parse(time.RFC3339, val); err == nil {
+			val = reltime(t)
+		}
+	}
 	if !h.color || h.theme.IsNone() {
 		return val
 	}

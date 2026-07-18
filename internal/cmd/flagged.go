@@ -11,6 +11,11 @@ import (
 func newFlaggedCmd(outputMode *string) *cobra.Command {
 	var team string
 	var limit int
+	var columns string
+	var full bool
+	var style string
+	var timeFormat string
+	var format string
 	cmd := &cobra.Command{
 		Use:   "flagged",
 		Short: "List posts you flagged",
@@ -20,15 +25,20 @@ func newFlaggedCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runFlagged(app, team, limit, cmd.OutOrStdout())
+			return runFlagged(app, team, limit, columns, full, style, timeFormat, format, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&team, "team", "", "restrict to this team")
 	cmd.Flags().IntVar(&limit, "limit", 50, "max results")
+	cmd.Flags().StringVar(&columns, "columns", "", "columns to show")
+	cmd.Flags().BoolVar(&full, "full", false, "show full message text")
+	cmd.Flags().StringVar(&style, "style", "", "output style: table|chat|tree")
+	cmd.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
+	cmd.Flags().StringVar(&format, "format", "", "output format: table|tree")
 	return cmd
 }
 
-func runFlagged(app *appContext, teamName string, limit int, w io.Writer) error {
+func runFlagged(app *appContext, teamName string, limit int, columns string, full bool, style, timeFormat, format string, w io.Writer) error {
 	ctx := context.Background()
 	teamID, resolvedTeam, err := app.resolveTeam(ctx, teamName)
 	if err != nil {
@@ -38,8 +48,16 @@ func runFlagged(app *appContext, teamName string, limit int, w io.Writer) error 
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Flagged", postsInOrder(pl), resolvedTeam, true, messageColumns, false)
-	return app.render(w, res)
+	spec := columns
+	if spec == "" {
+		spec = app.columnsDefault
+	}
+	cols, err := resolveColumns(messageColumns, spec)
+	if err != nil {
+		return err
+	}
+	res := renderMessages(ctx, app, "Flagged", postsInOrder(pl), resolvedTeam, full, cols, false)
+	return app.renderOpts(w, res, format, style, timeFormat)
 }
 
 func newFlagCmd(outputMode *string) *cobra.Command {

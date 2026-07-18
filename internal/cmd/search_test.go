@@ -12,7 +12,7 @@ func TestSearch_Limit(t *testing.T) {
 	fake := &fakeAPI{posts: &model.PostList{}, teams: []*model.Team{{Id: "t1", Name: "eng"}}}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
-	if err := runSearch(app, "test", "eng", false, "", "", 20, 0, "", "", &buf); err != nil {
+	if err := runSearch(app, "test", "eng", false, "", "", "", "", 20, 0, "", "", &buf); err != nil {
 		t.Fatalf("runSearch with limit: %v", err)
 	}
 }
@@ -21,7 +21,7 @@ func TestSearch_SinceModifier(t *testing.T) {
 	fake := &fakeAPI{posts: &model.PostList{}, teams: []*model.Team{{Id: "t1", Name: "eng"}}}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
-	if err := runSearch(app, "test", "eng", false, "", "", 0, 0, "2026-07-01", "", &buf); err != nil {
+	if err := runSearch(app, "test", "eng", false, "", "", "", "", 0, 0, "2026-07-01", "", &buf); err != nil {
 		t.Fatalf("runSearch with since: %v", err)
 	}
 }
@@ -38,7 +38,7 @@ func TestSearch_RendersHits(t *testing.T) {
 		previewLen: 140,
 	}
 	var buf bytes.Buffer
-	if err := runSearch(app, "deploy", "eng", false, "", "", 0, 0, "", "", &buf); err != nil {
+	if err := runSearch(app, "deploy", "eng", false, "", "", "", "", 0, 0, "", "", &buf); err != nil {
 		t.Fatalf("runSearch: %v", err)
 	}
 	if !strings.Contains(buf.String(), "deploy failed") {
