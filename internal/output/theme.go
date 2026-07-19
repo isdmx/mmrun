@@ -60,6 +60,18 @@ var MinimalTheme = Theme{
 	TreeMarker:      "\x1b[1m",
 }
 
+// GlamourStyle maps the theme's code language style to a glamour standard style.
+func (t Theme) GlamourStyle() string {
+	switch t.CodeLangStyle {
+	case "github":
+		return "notty"
+	case "bw":
+		return "ascii"
+	default:
+		return "dark"
+	}
+}
+
 // resolveTheme picks the active theme from color and theme preferences.
 func resolveTheme(_color, theme string) Theme {
 	switch theme {

@@ -27,14 +27,16 @@ type readOpts struct {
 	threadsOnly   bool
 	tail          bool
 	unreadSummary bool
+	noMarkdown    bool
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
 	var opts readOpts
 	cmd := &cobra.Command{
-		Use:   "read <channel>",
-		Short: "Fetch recent messages from a channel or DM",
-		Args:  cobra.ExactArgs(1),
+		Use:     "read <channel>",
+		Short:   "Fetch recent messages from a channel or DM",
+		Example: "  mmrun read python --limit 20\n  mmrun read '~town-square' --style chat --since 24h\n  mmrun read @alice --full",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {
@@ -56,6 +58,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.threadsOnly, "threads-only", false, "show only root posts (no replies)")
 	cmd.Flags().BoolVar(&opts.tail, "tail", false, "enter live-stream mode after fetching messages")
 	cmd.Flags().BoolVar(&opts.unreadSummary, "unread-summary", false, "show unread/mention counts after fetching")
+	cmd.Flags().BoolVar(&opts.noMarkdown, "no-markdown", false, "disable markdown rendering")
 	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
@@ -127,7 +130,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	}
 
 	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true)
-	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat)
+	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat, !opts.noMarkdown)
 	if opts.markRead && markCh != nil {
 		if herr := app.api.ViewChannel(ctx, app.userID, markCh.Id); herr != nil {
 			return herr

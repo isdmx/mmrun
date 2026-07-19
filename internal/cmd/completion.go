@@ -2,10 +2,40 @@ package cmd
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
 )
+
+type complCache struct {
+	mu    sync.Mutex
+	items map[string]complEntry
+}
+
+type complEntry struct {
+	expires time.Time
+	data    []string
+}
+
+var completionCache = &complCache{items: map[string]complEntry{}}
+
+func (c *complCache) get(key string) ([]string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	e, ok := c.items[key]
+	if !ok || time.Now().After(e.expires) {
+		return nil, false
+	}
+	return e.data, true
+}
+
+func (c *complCache) set(key string, data []string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items[key] = complEntry{expires: time.Now().Add(30 * time.Second), data: data}
+}
 
 // completeChannelArg is a cobra ValidArgsFunction completing the first
 // positional argument with channel references (names, ~names, @usernames).
@@ -53,6 +83,10 @@ func completeChannelCompletions(app *appContext) []string {
 	if err != nil {
 		teamID = ""
 	}
+	cacheKey := "channels:" + app.userID + ":" + teamID
+	if data, ok := completionCache.get(cacheKey); ok {
+		return data
+	}
 	channels, err := app.api.ChannelsForUser(ctx, teamID, app.userID)
 	if err != nil {
 		return nil
@@ -76,7 +110,9 @@ func completeChannelCompletions(app *appContext) []string {
 			out = append(out, c.DisplayName)
 		}
 	}
-	return append(append(out, dmCompletions(ctx, app, peers)...), resolveSelfCompletion(ctx, app))
+	result := append(append(out, dmCompletions(ctx, app, peers)...), resolveSelfCompletion(ctx, app))
+	completionCache.set(cacheKey, result)
+	return result
 }
 
 // resolveSelfCompletion returns the @username form of the authenticated user
@@ -147,6 +183,10 @@ func splitDMName(name string) []string {
 
 // completeTeamCompletions returns shell completions for --team flags.
 func completeTeamCompletions(app *appContext) []string {
+	cacheKey := "teams:" + app.userID
+	if data, ok := completionCache.get(cacheKey); ok {
+		return data
+	}
 	teams, err := app.api.TeamsForUser(context.Background(), app.userID)
 	if err != nil {
 		return nil
@@ -157,6 +197,7 @@ func completeTeamCompletions(app *appContext) []string {
 			out = append(out, t.Name)
 		}
 	}
+	completionCache.set(cacheKey, out)
 	return out
 }
 
@@ -168,6 +209,10 @@ func completePostIDCompletions(app *appContext) []string {
 	if err != nil {
 		teamID = ""
 	}
+	cacheKey := "postIDs:" + app.userID + ":" + teamID
+	if data, ok := completionCache.get(cacheKey); ok {
+		return data
+	}
 	threads, err := app.api.UserThreads(ctx, app.userID, teamID, false, 50)
 	if err != nil || threads == nil {
 		return nil
@@ -178,5 +223,6 @@ func completePostIDCompletions(app *appContext) []string {
 			out = append(out, tr.PostId)
 		}
 	}
+	completionCache.set(cacheKey, out)
 	return out
 }

@@ -20,7 +20,7 @@ func sampleResult() Result {
 
 func TestJSONRenderer(t *testing.T) {
 	var buf bytes.Buffer
-	r := rendererFor("json", false)
+	r := rendererFor("json", false, "")
 	if err := r.Render(&buf, sampleResult()); err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func TestJSONRenderer(t *testing.T) {
 
 func TestAIRenderer_NoANSI(t *testing.T) {
 	var buf bytes.Buffer
-	r := rendererFor("ai", false)
+	r := rendererFor("ai", false, "")
 	if err := r.Render(&buf, sampleResult()); err != nil {
 		t.Fatal(err)
 	}

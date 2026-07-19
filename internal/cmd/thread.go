@@ -15,18 +15,20 @@ import (
 )
 
 type threadListOpts struct {
-	team    string
-	unread  bool
-	limit   int
-	full    bool
-	columns string
+	team       string
+	unread     bool
+	limit      int
+	full       bool
+	columns    string
+	noMarkdown bool
 }
 
 func newThreadCmd(outputMode *string) *cobra.Command {
 	thread := &cobra.Command{
-		Use:   "thread",
-		Short: "List and read followed threads",
-		Args:  cobra.NoArgs,
+		Use:     "thread",
+		Short:   "List and read followed threads",
+		Example: "  mmrun thread --unread --limit 10\n  mmrun thread read <post-id> --mark-read",
+		Args:    cobra.NoArgs,
 	}
 	addThreadListRun(thread, outputMode)
 
@@ -43,6 +45,7 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 	var format string
 	var style string
 	var timeFormat string
+	var noMarkdown bool
 	threadRead := &cobra.Command{
 		Use:   "read <post-id>",
 		Short: "Read a thread and optionally mark it as read",
@@ -52,13 +55,14 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runThreadRead(app, args[0], markRead, format, "", "", cmd.OutOrStdout())
+			return runThreadRead(app, args[0], markRead, format, "", "", !noMarkdown, cmd.OutOrStdout())
 		},
 	}
 	threadRead.Flags().BoolVar(&markRead, "mark-read", false, "mark the thread as read")
 	threadRead.Flags().StringVar(&format, "format", "", "output format: table|tree")
 	threadRead.Flags().StringVar(&style, "style", "", "output style: table|chat|tree (default from config)")
 	threadRead.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
+	threadRead.Flags().BoolVar(&noMarkdown, "no-markdown", false, "disable markdown rendering")
 	threadRead.ValidArgsFunction = completePostIDArg
 	thread.AddCommand(threadRead)
 	return thread
@@ -78,6 +82,7 @@ func addThreadListRun(cmd *cobra.Command, outputMode *string) {
 	cmd.Flags().IntVar(&opts.limit, "limit", 0, "maximum number of threads to fetch (default from config or 50)")
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full root message text instead of a single-line preview")
 	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. user,replies,message)")
+	cmd.Flags().BoolVar(&opts.noMarkdown, "no-markdown", false, "disable markdown rendering")
 }
 
 var threadColumns = []string{"last_reply", "channel", "user", "replies", "unread", "files", "post_id", "permalink", "message"}
@@ -146,17 +151,17 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 			res.Rows = append(res.Rows, row)
 		}
 	}
-	return app.render(w, res)
+	return app.renderOpts(w, res, "", "", "", !opts.noMarkdown)
 }
 
-func runThreadRead(app *appContext, postID string, markRead bool, format, style, timeFormat string, w io.Writer) error {
+func runThreadRead(app *appContext, postID string, markRead bool, format, style, timeFormat string, markdown bool, w io.Writer) error {
 	ctx := context.Background()
 	pl, err := app.api.PostThread(ctx, postID)
 	if err != nil {
 		return err
 	}
 	res := renderMessages(ctx, app, "Thread", chronological(pl), "", true, messageColumns, true)
-	if aerr := app.renderOpts(w, res, format, style, timeFormat); aerr != nil {
+	if aerr := app.renderOpts(w, res, format, style, timeFormat, markdown); aerr != nil {
 		return aerr
 	}
 	if markRead {

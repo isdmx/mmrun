@@ -21,16 +21,18 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	var page int
 	var sinceFlag string
 	var beforeFlag string
+	var noMarkdown bool
 	cmd := &cobra.Command{
-		Use:   "search <query>",
-		Short: "Search messages (server-side; supports Mattermost search modifiers)",
-		Args:  cobra.MinimumNArgs(1),
+		Use:     "search <query>",
+		Short:   "Search messages (server-side; supports Mattermost search modifiers)",
+		Example: "  mmrun search 'deploy error' --limit 20\n  mmrun search 'from:bob build' --since 2026-07-01",
+		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
 			}
-			return runSearch(app, strings.Join(args, " "), teamName, full, columns, format, style, timeFormat, limit, page, sinceFlag, beforeFlag, cmd.OutOrStdout())
+			return runSearch(app, strings.Join(args, " "), teamName, full, columns, format, style, timeFormat, limit, page, sinceFlag, beforeFlag, !noMarkdown, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&teamName, "team", "", "team to search within (defaults to your team if you have only one)")
@@ -43,11 +45,12 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().IntVar(&page, "page", 0, "page number (0-based)")
 	cmd.Flags().StringVar(&sinceFlag, "since", "", "only posts after this time (duration like 24h or RFC3339)")
 	cmd.Flags().StringVar(&beforeFlag, "before", "", "only posts before this time (RFC3339)")
+	cmd.Flags().BoolVar(&noMarkdown, "no-markdown", false, "disable markdown rendering")
 	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 
-func runSearch(app *appContext, query, teamName string, full bool, columns, format, style, timeFormat string, limit, page int, sinceFlag, beforeFlag string, w io.Writer) error {
+func runSearch(app *appContext, query, teamName string, full bool, columns, format, style, timeFormat string, limit, page int, sinceFlag, beforeFlag string, markdown bool, w io.Writer) error {
 	ctx := context.Background()
 	teamID, resolvedTeam, err := app.resolveTeam(ctx, teamName)
 	if err != nil {
@@ -76,7 +79,7 @@ func runSearch(app *appContext, query, teamName string, full bool, columns, form
 		return err
 	}
 	res := renderMessages(ctx, app, "Search results", postsInOrder(pl), resolvedTeam, full, cols, false)
-	return app.renderOpts(w, res, format, style, timeFormat)
+	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }
 
 // postsInOrder returns the posts of a PostList in the server-provided Order

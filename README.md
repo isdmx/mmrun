@@ -100,7 +100,9 @@ code-block syntax highlighting (via chroma), and more. Human-mode only.
 
 **Message styles** — `--style table|chat|tree` controls layout. `chat` shows user+time header + message body + metadata footer. `tree` adds ●/↳ thread markers. Config: `config set style chat`.
 
-**Docker** — `docker pull ghcr.io/isdmx/mmrun`.
+**Markdown** — messages are rendered as styled terminal output (bold, italic,
+headers, lists, links, inline code) via glamour. Disable with `--no-markdown`
+or `config set markdown false`. Raw markdown stays in `ai`/`json` modes.
 
 
 **Output formats** — `read`, `search`, `thread read`, and `mentions` accept

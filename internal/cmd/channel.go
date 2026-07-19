@@ -13,9 +13,10 @@ import (
 
 func newChannelCmd(outputMode *string) *cobra.Command {
 	channel := &cobra.Command{
-		Use:   "channel",
-		Short: "List and search channels",
-		Args:  cobra.NoArgs,
+		Use:     "channel",
+		Short:   "List and search channels",
+		Example: "  mmrun channel --team sberdevices\n  mmrun channel search town --team sberdevices",
+		Args:    cobra.NoArgs,
 	}
 	// Bare `channel` (and `channel list`) list channels.
 	addChannelListRun(channel, outputMode)

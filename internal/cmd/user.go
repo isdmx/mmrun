@@ -11,7 +11,10 @@ import (
 )
 
 func newUserCmd(outputMode *string) *cobra.Command {
-	user := &cobra.Command{Use: "user", Short: "User operations"}
+	user := &cobra.Command{
+		Use: "user", Short: "User operations",
+		Example: "  mmrun user search alice",
+	}
 
 	var teamName string
 	search := &cobra.Command{

@@ -11,7 +11,10 @@ import (
 )
 
 func newEditCmd(outputMode *string) *cobra.Command {
-	edit := &cobra.Command{Use: "edit", Short: "Edit and delete posts"}
+	edit := &cobra.Command{
+		Use: "edit", Short: "Edit and delete posts",
+		Example: "  mmrun edit edit <post-id> 'new text'\n  mmrun edit delete <post-id> --yes",
+	}
 
 	editPost := &cobra.Command{
 		Use:   "edit <post-id> <msg>",

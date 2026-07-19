@@ -11,6 +11,7 @@ type treeBlockRenderer struct {
 	color      bool
 	theme      Theme
 	timeFormat string
+	markdown   bool
 }
 
 var _ Renderer = treeBlockRenderer{}
@@ -52,7 +53,11 @@ func (t treeBlockRenderer) renderRow(w io.Writer, row Row) error {
 	if isReply {
 		indent = "  │ "
 	}
-	for _, line := range strings.Split(row["message"], "\n") {
+	msg := row["message"]
+	if t.markdown {
+		msg = renderMarkdown(msg, t.theme.GlamourStyle())
+	}
+	for _, line := range strings.Split(msg, "\n") {
 		if _, err := fmt.Fprintf(w, "%s%s\n", indent, line); err != nil {
 			return err
 		}

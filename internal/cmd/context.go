@@ -34,6 +34,7 @@ type appContext struct {
 	timeFormat     string
 	botIDs         []string
 	aliases        map[string]string
+	markdown       bool
 }
 
 // requireSession builds an authenticated appContext from the stored session and
@@ -62,8 +63,11 @@ func initFromEnvAuth(d envAuthData, outputMode string) (*appContext, error) {
 	}
 	prefs := configWithDefaults(cfg, cfgerr)
 	var aliases map[string]string
-	if cfg != nil && cfg.Contexts != nil && cfg.Contexts["default"].Aliases != nil {
-		aliases = cfg.Contexts["default"].Aliases
+	if cfg != nil && cfg.Contexts != nil {
+		ctxName := "default"
+		if ctxCfg, ok := cfg.Contexts[ctxName]; ok {
+			aliases = ctxCfg.Aliases
+		}
 	}
 	return &appContext{
 		api:            cl,
@@ -82,6 +86,7 @@ func initFromEnvAuth(d envAuthData, outputMode string) (*appContext, error) {
 		timeFormat:     prefs.timeFormat,
 		botIDs:         botIDs,
 		aliases:        aliases,
+		markdown:       prefs.markdown,
 	}, nil
 }
 
@@ -144,6 +149,7 @@ func initFromSession(outputMode string) (*appContext, error) {
 		timeFormat:     cfg.TimeFormat(),
 		botIDs:         botIDs,
 		aliases:        aliases,
+		markdown:       cfg.Markdown(),
 	}, nil
 }
 
@@ -151,6 +157,7 @@ type configPrefs struct {
 	previewLen, defaultLimit         int
 	downloadDir, columnsDefault      string
 	format, theme, style, timeFormat string
+	markdown                         bool
 }
 
 // configWithDefaults applies defaults to zero config values.
@@ -165,6 +172,7 @@ func configWithDefaults(cfg *config.Config, loadErr error) configPrefs {
 		p.theme = cfg.Theme()
 		p.style = cfg.Style()
 		p.timeFormat = cfg.TimeFormat()
+		p.markdown = cfg.Markdown()
 	}
 	if p.previewLen == 0 {
 		p.previewLen = 140
@@ -189,11 +197,12 @@ func configWithDefaults(cfg *config.Config, loadErr error) configPrefs {
 
 // render writes a Result using the app's output mode, color, and highlight terms.
 func (a *appContext) render(w io.Writer, res output.Result) error {
-	return a.renderOpts(w, res, "", "", "")
+	return a.renderOpts(w, res, "", "", "", a.markdown)
 }
 
-// renderOpts renders with optional per-command format, style, and time-format overrides.
-func (a *appContext) renderOpts(w io.Writer, res output.Result, format, style, timeFormat string) error {
+// renderOpts renders with optional per-command format, style, time-format overrides,
+// and a markdown flag.
+func (a *appContext) renderOpts(w io.Writer, res output.Result, format, style, timeFormat string, markdown bool) error {
 	opts := output.Options{
 		Color: a.color, Theme: a.theme,
 		Format: a.format, Style: a.style, TimeFormat: a.timeFormat,
@@ -207,6 +216,7 @@ func (a *appContext) renderOpts(w io.Writer, res output.Result, format, style, t
 	if timeFormat != "" {
 		opts.TimeFormat = timeFormat
 	}
+	opts.Markdown = markdown
 	if a.username != "" {
 		opts.Highlight = []string{"@" + a.username}
 	}

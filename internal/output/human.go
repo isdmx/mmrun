@@ -19,6 +19,7 @@ type humanRenderer struct {
 	highlight  []string
 	theme      Theme
 	timeFormat string
+	markdown   bool
 }
 
 const (
@@ -99,6 +100,9 @@ func (h humanRenderer) styleCell(col, val string) string {
 	case "channel":
 		return h.theme.ChannelColor + val + ansiReset
 	case "message":
+		if h.markdown {
+			val = renderMarkdown(val, h.theme.GlamourStyle())
+		}
 		return highlightCodeBlocks(val, h.theme)
 	}
 	return val

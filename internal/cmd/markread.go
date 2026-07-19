@@ -13,9 +13,10 @@ import (
 func newMarkReadCmd(outputMode *string) *cobra.Command {
 	var typeFlag string
 	cmd := &cobra.Command{
-		Use:   "mark-read <id>",
-		Short: "Mark a channel or thread as read",
-		Args:  cobra.ExactArgs(1),
+		Use:     "mark-read <id>",
+		Short:   "Mark a channel or thread as read",
+		Example: "  mmrun mark-read <channel-id> --type channel\n  mmrun mark-read <post-id> --type thread",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

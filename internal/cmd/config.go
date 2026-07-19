@@ -13,7 +13,10 @@ import (
 )
 
 func newConfigCmd(outputMode *string) *cobra.Command {
-	cfg := &cobra.Command{Use: "config", Short: "View and edit configuration"}
+	cfg := &cobra.Command{
+		Use: "config", Short: "View and edit configuration",
+		Example: "  mmrun config set theme dark\n  mmrun config list",
+	}
 
 	cfg.AddCommand(&cobra.Command{
 		Use:   "path",

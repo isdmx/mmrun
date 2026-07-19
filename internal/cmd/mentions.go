@@ -18,16 +18,18 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	var format string
 	var style string
 	var timeFormat string
+	var noMarkdown bool
 	cmd := &cobra.Command{
-		Use:   "mentions",
-		Short: "Search posts that mention you",
-		Args:  cobra.NoArgs,
+		Use:     "mentions",
+		Short:   "Search posts that mention you",
+		Example: "  mmrun mentions --team sberdevices --limit 20",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
 			}
-			return runMentions(app, teamName, columns, limit, full, format, style, timeFormat, cmd.OutOrStdout())
+			return runMentions(app, teamName, columns, limit, full, format, style, timeFormat, !noMarkdown, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&teamName, "team", "", "restrict to this team")
@@ -37,11 +39,12 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&format, "format", "", "output format: table|tree")
 	cmd.Flags().StringVar(&style, "style", "", "output style: table|chat|tree (default from config)")
 	cmd.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
+	cmd.Flags().BoolVar(&noMarkdown, "no-markdown", false, "disable markdown rendering")
 	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 
-func runMentions(app *appContext, teamName, columns string, limit int, full bool, format, style, timeFormat string, w io.Writer) error {
+func runMentions(app *appContext, teamName, columns string, limit int, full bool, format, style, timeFormat string, markdown bool, w io.Writer) error {
 	ctx := context.Background()
 	if app.username == "" {
 		return fmt.Errorf("no username in session; re-login to store it")
@@ -107,5 +110,5 @@ func runMentions(app *appContext, teamName, columns string, limit int, full bool
 		return err
 	}
 	res := renderMessages(ctx, app, "Mentions", allPosts, permalinkTeam, full, cols, false)
-	return app.renderOpts(w, res, format, style, timeFormat)
+	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }

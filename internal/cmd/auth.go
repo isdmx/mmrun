@@ -18,7 +18,10 @@ import (
 )
 
 func newAuthCmd(outputMode *string) *cobra.Command {
-	auth := &cobra.Command{Use: "auth", Short: "Manage authentication"}
+	auth := &cobra.Command{
+		Use: "auth", Short: "Manage authentication",
+		Example: "  mmrun auth login --server https://mm.example.com\n  mmrun auth status",
+	}
 	auth.AddCommand(newLoginCmd())
 	auth.AddCommand(newLogoutCmd())
 	auth.AddCommand(newAuthStatusCmd(outputMode))

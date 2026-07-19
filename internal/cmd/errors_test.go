@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -37,5 +38,17 @@ func TestExitCode_HTTPStatus(t *testing.T) {
 	server := &model.AppError{StatusCode: 500, Message: "boom"}
 	if got := ExitCode(server); got != 1 {
 		t.Errorf("500 = %d, want 1", got)
+	}
+}
+
+func TestFriendlyMsg(t *testing.T) {
+	if got := friendlyMsg(&model.AppError{StatusCode: 401}); !strings.Contains(got, "auth login") {
+		t.Errorf("401 = %q", got)
+	}
+	if got := friendlyMsg(&model.AppError{StatusCode: 404}); !strings.Contains(got, "Not found") {
+		t.Errorf("404 = %q", got)
+	}
+	if got := friendlyMsg(&model.AppError{StatusCode: 500}); got != "" {
+		t.Errorf("500 = %q, want empty", got)
 	}
 }

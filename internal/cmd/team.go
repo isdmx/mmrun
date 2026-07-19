@@ -18,10 +18,11 @@ func newTeamCmd(outputMode *string) *cobra.Command {
 		return runTeamList(app, cmd.OutOrStdout())
 	}
 	team := &cobra.Command{
-		Use:   "team",
-		Short: "List teams you belong to",
-		Args:  cobra.NoArgs,
-		RunE:  run,
+		Use:     "team",
+		Short:   "List teams you belong to",
+		Example: "  mmrun team\n  mmrun team list",
+		Args:    cobra.NoArgs,
+		RunE:    run,
 	}
 	team.AddCommand(&cobra.Command{
 		Use:   "list",

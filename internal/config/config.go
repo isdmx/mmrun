@@ -26,6 +26,7 @@ type Config struct {
 	Theme_        string                   `toml:"theme"`       //nolint:revive // toml field paired with accessor method
 	Style_        string                   `toml:"style"`       //nolint:revive // toml field paired with accessor method
 	TimeFormat_   string                   `toml:"time_format"` //nolint:revive // toml field paired with accessor method
+	Markdown_     string                   `toml:"markdown"`    //nolint:revive // toml field paired with accessor method
 	Contexts      map[string]ContextConfig `toml:"context"`
 }
 
@@ -97,6 +98,11 @@ func (c *Config) TimeFormat() string {
 		return "rfc3339"
 	}
 	return c.TimeFormat_
+}
+
+// Markdown returns whether markdown rendering is enabled (default true).
+func (c *Config) Markdown() bool {
+	return c.Markdown_ != "false"
 }
 
 // PathSet holds resolved XDG file locations.

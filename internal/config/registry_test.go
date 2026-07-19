@@ -100,7 +100,7 @@ func TestGet_DownloadDirEffective(t *testing.T) {
 
 func TestKeys_Sorted(t *testing.T) {
 	keys := Keys()
-	if len(keys) != 10 {
-		t.Errorf("expected 10 keys, got %d", len(keys))
+	if len(keys) != 11 {
+		t.Errorf("expected 11 keys, got %d", len(keys))
 	}
 }
