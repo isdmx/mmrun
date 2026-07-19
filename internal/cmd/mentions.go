@@ -26,6 +26,12 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := requireSession(*outputMode)
+			if !cmd.Flags().Changed("full") {
+				full = app.full
+			}
+			if !cmd.Flags().Changed("full") {
+				full = app.full
+			}
 			if err != nil {
 				return err
 			}

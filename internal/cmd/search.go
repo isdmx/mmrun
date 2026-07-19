@@ -29,6 +29,12 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
+			if !cmd.Flags().Changed("full") {
+				full = app.full
+			}
+			if !cmd.Flags().Changed("full") {
+				full = app.full
+			}
 			if err != nil {
 				return err
 			}

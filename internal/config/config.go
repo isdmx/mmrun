@@ -22,11 +22,13 @@ type Config struct {
 	ColorMode     string                   `toml:"color"`
 	DownloadDir_  string                   `toml:"download_dir"` //nolint:revive // toml field paired with accessor method
 	Columns       string                   `toml:"columns"`
-	Format_       string                   `toml:"format"`      //nolint:revive // toml field paired with accessor method
-	Theme_        string                   `toml:"theme"`       //nolint:revive // toml field paired with accessor method
-	Style_        string                   `toml:"style"`       //nolint:revive // toml field paired with accessor method
-	TimeFormat_   string                   `toml:"time_format"` //nolint:revive // toml field paired with accessor method
-	Markdown_     string                   `toml:"markdown"`    //nolint:revive // toml field paired with accessor method
+	Format_       string                   `toml:"format"`       //nolint:revive // toml field paired with accessor method
+	Theme_        string                   `toml:"theme"`        //nolint:revive // toml field paired with accessor method
+	Style_        string                   `toml:"style"`        //nolint:revive // toml field paired with accessor method
+	TimeFormat_   string                   `toml:"time_format"`  //nolint:revive // toml field paired with accessor method
+	Markdown_     string                   `toml:"markdown"`     //nolint:revive // toml field paired with accessor method
+	Full_         string                   `toml:"full"`         //nolint:revive // toml field paired with accessor method
+	ThreadsOnly_  string                   `toml:"threads_only"` //nolint:revive // toml field paired with accessor method
 	Contexts      map[string]ContextConfig `toml:"context"`
 }
 
@@ -103,6 +105,16 @@ func (c *Config) TimeFormat() string {
 // Markdown returns whether markdown rendering is enabled (default true).
 func (c *Config) Markdown() bool {
 	return c.Markdown_ != "false"
+}
+
+// Full returns true when messages should be shown in full without preview truncation.
+func (c *Config) Full() bool {
+	return c.Full_ == "true"
+}
+
+// ThreadsOnly returns true when only root posts (no replies) should be shown by default.
+func (c *Config) ThreadsOnly() bool {
+	return c.ThreadsOnly_ == "true"
 }
 
 // PathSet holds resolved XDG file locations.
