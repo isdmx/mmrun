@@ -68,12 +68,12 @@ func resolveMode(requested string, isTTY bool) string {
 	return requested
 }
 
-func rendererFor(mode string, color bool) Renderer {
+func rendererFor(mode string, color bool, timeFormat string) Renderer {
 	switch mode {
 	case "json":
 		return jsonRenderer{}
 	case "human":
-		return humanRenderer{color: color}
+		return humanRenderer{color: color, timeFormat: timeFormat}
 	default: // "ai"
 		return aiRenderer{}
 	}
@@ -90,7 +90,7 @@ func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
 	isTTY := IsTTY(out)
 	mode := resolveMode(requested, isTTY)
 	if mode != "human" {
-		return rendererFor(mode, false)
+		return rendererFor(mode, false, "")
 	}
 	if opts.Format == "tree" || opts.Style == "tree" {
 		themeObj := resolveTheme(opts.Color, opts.Theme)
