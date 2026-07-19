@@ -32,6 +32,8 @@ type appContext struct {
 	theme          string
 	style          string
 	timeFormat     string
+	full           bool
+	threadsOnly    bool
 	botIDs         []string
 	aliases        map[string]string
 	markdown       bool
@@ -84,6 +86,7 @@ func initFromEnvAuth(d envAuthData, outputMode string) (*appContext, error) {
 		format:         prefs.format,
 		style:          prefs.style,
 		timeFormat:     prefs.timeFormat,
+		threadsOnly:    prefs.threadsOnly,
 		botIDs:         botIDs,
 		aliases:        aliases,
 		markdown:       prefs.markdown,
@@ -147,6 +150,8 @@ func initFromSession(outputMode string) (*appContext, error) {
 		format:         cfg.Format(),
 		style:          cfg.Style(),
 		timeFormat:     cfg.TimeFormat(),
+		full:           cfg.Full(),
+		threadsOnly:    cfg.ThreadsOnly(),
 		botIDs:         botIDs,
 		aliases:        aliases,
 		markdown:       cfg.Markdown(),
@@ -158,6 +163,8 @@ type configPrefs struct {
 	downloadDir, columnsDefault      string
 	format, theme, style, timeFormat string
 	markdown                         bool
+	full                             bool
+	threadsOnly                      bool
 }
 
 // configWithDefaults applies defaults to zero config values.
@@ -173,6 +180,8 @@ func configWithDefaults(cfg *config.Config, loadErr error) configPrefs {
 		p.style = cfg.Style()
 		p.timeFormat = cfg.TimeFormat()
 		p.markdown = cfg.Markdown()
+		p.full = cfg.Full()
+		p.threadsOnly = cfg.ThreadsOnly()
 	}
 	if p.previewLen == 0 {
 		p.previewLen = 140

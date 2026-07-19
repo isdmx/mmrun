@@ -60,6 +60,8 @@ func setInt(target *int) func(*Config, string) error {
 }
 
 // settingsFor returns the settings bound to a specific Config pointer.
+//
+//nolint:funlen // declarative settings table
 func settingsFor(c *Config) map[string]setting {
 	return map[string]setting{
 		"server_url": {
@@ -132,6 +134,45 @@ func settingsFor(c *Config) map[string]setting {
 			validate:    enumValidator("true", "false"),
 			get:         func(c *Config) string { return c.Markdown_ },
 			set:         func(c *Config, v string) error { c.Markdown_ = v; return nil },
+		},
+
+		"style": {
+			description: "output style: table|chat|tree",
+			def:         "table",
+			validate:    enumValidator("table", "chat", "tree"),
+			get:         func(c *Config) string { return c.Style() },
+			set:         func(c *Config, v string) error { c.Style_ = v; return nil },
+		},
+		"time_format": {
+			description: "timestamp format: rfc3339|relative",
+			def:         "rfc3339",
+			validate:    enumValidator("rfc3339", "relative"),
+			get:         func(c *Config) string { return c.TimeFormat() },
+			set:         func(c *Config, v string) error { c.TimeFormat_ = v; return nil },
+		},
+		"full": {
+			description: "always show full message text",
+			def:         "false",
+			validate:    enumValidator("true", "false"),
+			get: func(c *Config) string {
+				if c.Full() {
+					return "true"
+				}
+				return "false"
+			},
+			set: func(c *Config, v string) error { c.Full_ = v; return nil },
+		},
+		"threads_only": {
+			description: "show only root posts (no replies) by default",
+			def:         "false",
+			validate:    enumValidator("true", "false"),
+			get: func(c *Config) string {
+				if c.ThreadsOnly() {
+					return "true"
+				}
+				return "false"
+			},
+			set: func(c *Config, v string) error { c.ThreadsOnly_ = v; return nil },
 		},
 	}
 }

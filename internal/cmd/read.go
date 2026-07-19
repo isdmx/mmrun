@@ -39,6 +39,12 @@ func newReadCmd(outputMode *string) *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
+			if !cmd.Flags().Changed("full") {
+				opts.full = app.full
+			}
+			if !cmd.Flags().Changed("full") {
+				opts.full = app.full
+			}
 			if err != nil {
 				return err
 			}
