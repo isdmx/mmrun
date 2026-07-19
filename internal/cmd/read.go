@@ -27,6 +27,7 @@ type readOpts struct {
 	threadsOnly   bool
 	tail          bool
 	unreadSummary bool
+	noMarkdown    bool
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
@@ -56,6 +57,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.threadsOnly, "threads-only", false, "show only root posts (no replies)")
 	cmd.Flags().BoolVar(&opts.tail, "tail", false, "enter live-stream mode after fetching messages")
 	cmd.Flags().BoolVar(&opts.unreadSummary, "unread-summary", false, "show unread/mention counts after fetching")
+	cmd.Flags().BoolVar(&opts.noMarkdown, "no-markdown", false, "disable markdown rendering")
 	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
@@ -127,7 +129,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	}
 
 	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true)
-	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat)
+	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat, !opts.noMarkdown)
 	if opts.markRead && markCh != nil {
 		if herr := app.api.ViewChannel(ctx, app.userID, markCh.Id); herr != nil {
 			return herr

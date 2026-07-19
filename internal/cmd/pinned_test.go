@@ -16,7 +16,7 @@ func TestPinned(t *testing.T) {
 	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, pinnedPosts: pl, users: []*model.User{{Id: "u2", Username: "bob"}}}
 	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
 	var buf bytes.Buffer
-	if err := runPinned(app, "general", "", false, "", "", "", &buf); err != nil {
+	if err := runPinned(app, "general", "", false, "", "", "", true, &buf); err != nil {
 		t.Fatalf("pinned: %v", err)
 	}
 	if !strings.Contains(buf.String(), "pinned msg") {

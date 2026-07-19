@@ -126,6 +126,13 @@ func settingsFor(c *Config) map[string]setting {
 			get:         func(c *Config) string { return c.Theme() },
 			set:         func(c *Config, v string) error { c.Theme_ = v; return nil },
 		},
+		"markdown": {
+			description: "render markdown in messages: true|false",
+			def:         "true",
+			validate:    enumValidator("true", "false"),
+			get:         func(c *Config) string { return c.Markdown_ },
+			set:         func(c *Config, v string) error { c.Markdown_ = v; return nil },
+		},
 	}
 }
 

@@ -34,6 +34,7 @@ type Options struct {
 	Theme      string   // "dark"|"light"|"minimal"|""
 	Style      string   // "table"|"chat"|"tree" (default "table")
 	TimeFormat string   // "rfc3339"|"relative" (default "rfc3339")
+	Markdown   bool
 }
 
 // colorEnabled reports whether ANSI color should be emitted for the given color
@@ -98,11 +99,11 @@ func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
 		if themeObj.IsNone() {
 			col = false
 		}
-		return treeBlockRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat}
+		return treeBlockRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat, markdown: opts.Markdown}
 	}
 	themeObj := resolveTheme(opts.Color, opts.Theme)
 	if themeObj.IsNone() {
-		return humanRenderer{color: false, highlight: opts.Highlight, timeFormat: opts.TimeFormat}
+		return humanRenderer{color: false, highlight: opts.Highlight, timeFormat: opts.TimeFormat, markdown: opts.Markdown}
 	}
 	colorMode := opts.Color
 	if opts.Theme != "" && (colorMode == "" || colorMode == "auto") {
@@ -111,10 +112,10 @@ func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
 	col := colorEnabled(colorMode, isTTY)
 	switch opts.Style {
 	case "chat":
-		return chatRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat}
+		return chatRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat, markdown: opts.Markdown}
 	case "tree":
-		return treeBlockRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat}
+		return treeBlockRenderer{color: col, theme: themeObj, timeFormat: opts.TimeFormat, markdown: opts.Markdown}
 	default:
-		return humanRenderer{color: col, highlight: opts.Highlight, theme: themeObj, timeFormat: opts.TimeFormat}
+		return humanRenderer{color: col, highlight: opts.Highlight, theme: themeObj, timeFormat: opts.TimeFormat, markdown: opts.Markdown}
 	}
 }
