@@ -20,9 +20,10 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	var timeFormat string
 	var noMarkdown bool
 	cmd := &cobra.Command{
-		Use:   "mentions",
-		Short: "Search posts that mention you",
-		Args:  cobra.NoArgs,
+		Use:     "mentions",
+		Short:   "Search posts that mention you",
+		Example: "  mmrun mentions --team sberdevices --limit 20",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

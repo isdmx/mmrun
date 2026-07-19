@@ -26,9 +26,10 @@ type postOpts struct {
 func newPostCmd(outputMode *string) *cobra.Command {
 	var opts postOpts
 	cmd := &cobra.Command{
-		Use:   "post <channel> [message]",
-		Short: "Post a message to a channel or DM",
-		Args:  cobra.RangeArgs(1, 2),
+		Use:     "post <channel> [message]",
+		Short:   "Post a message to a channel or DM",
+		Example: "  mmrun post python 'deploy finished'\n  mmrun post @alice ping --file report.pdf\n  echo 'build failed' | mmrun post alerts -",
+		Args:    cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

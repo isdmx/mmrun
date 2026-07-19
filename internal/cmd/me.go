@@ -12,8 +12,9 @@ import (
 func newMeCmd(outputMode *string) *cobra.Command {
 	var profile bool
 	cmd := &cobra.Command{
-		Use:   "me",
-		Short: "Show the authenticated account and status",
+		Use:     "me",
+		Short:   "Show the authenticated account and status",
+		Example: "  mmrun me\n  mmrun me --profile",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

@@ -25,3 +25,18 @@ func ExitCode(err error) int {
 	}
 	return 1
 }
+
+// friendlyMsg returns a user-facing suggestion for known HTTP status codes.
+func friendlyMsg(err error) string {
+	code := client.StatusCode(err)
+	switch code {
+	case 401:
+		return "Authentication failed. Re-authenticate with 'mmrun auth login'."
+	case 403:
+		return "Forbidden. You may not have access to this resource."
+	case 404:
+		return "Not found. Try searching for the resource or check the ID."
+	default:
+		return ""
+	}
+}

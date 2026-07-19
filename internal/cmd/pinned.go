@@ -15,9 +15,10 @@ func newPinnedCmd(outputMode *string) *cobra.Command {
 	var format string
 	var noMarkdown bool
 	cmd := &cobra.Command{
-		Use:   "pinned <channel>",
-		Short: "List pinned posts in a channel",
-		Args:  cobra.ExactArgs(1),
+		Use:     "pinned <channel>",
+		Short:   "List pinned posts in a channel",
+		Example: "  mmrun pinned python\n  mmrun pinned '~general' --columns time,user,message",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

@@ -23,9 +23,10 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	var beforeFlag string
 	var noMarkdown bool
 	cmd := &cobra.Command{
-		Use:   "search <query>",
-		Short: "Search messages (server-side; supports Mattermost search modifiers)",
-		Args:  cobra.MinimumNArgs(1),
+		Use:     "search <query>",
+		Short:   "Search messages (server-side; supports Mattermost search modifiers)",
+		Example: "  mmrun search 'deploy error' --limit 20\n  mmrun search 'from:bob build' --since 2026-07-01",
+		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

@@ -14,7 +14,10 @@ import (
 )
 
 func newContextCmd(outputMode *string) *cobra.Command {
-	ctxCmd := &cobra.Command{Use: "context", Short: "Manage session contexts"}
+	ctxCmd := &cobra.Command{
+		Use: "context", Short: "Manage session contexts",
+		Example: "  mmrun context list\n  mmrun context use work",
+	}
 
 	ctxCmd.AddCommand(&cobra.Command{
 		Use:   "list",

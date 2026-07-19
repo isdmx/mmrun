@@ -87,6 +87,9 @@ func Run() int {
 // printError writes err to stderr, as a JSON object when the output mode is
 // "json", otherwise as a plain prefixed line.
 func printError(err error, outputMode string) {
+	if msg := friendlyMsg(err); msg != "" {
+		fmt.Fprintln(os.Stderr, "mmrun:", msg)
+	}
 	if outputMode == "json" {
 		_ = json.NewEncoder(os.Stderr).Encode(map[string]string{"error": err.Error()})
 		return

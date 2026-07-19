@@ -12,9 +12,10 @@ import (
 
 func newCopyCmd(outputMode *string) *cobra.Command {
 	return &cobra.Command{
-		Use:   "copy <post-id>",
-		Short: "Copy post permalink to clipboard",
-		Args:  cobra.ExactArgs(1),
+		Use:     "copy <post-id>",
+		Short:   "Copy post permalink to clipboard",
+		Example: "  mmrun copy <post-id>",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

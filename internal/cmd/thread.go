@@ -25,9 +25,10 @@ type threadListOpts struct {
 
 func newThreadCmd(outputMode *string) *cobra.Command {
 	thread := &cobra.Command{
-		Use:   "thread",
-		Short: "List and read followed threads",
-		Args:  cobra.NoArgs,
+		Use:     "thread",
+		Short:   "List and read followed threads",
+		Example: "  mmrun thread --unread --limit 10\n  mmrun thread read <post-id> --mark-read",
+		Args:    cobra.NoArgs,
 	}
 	addThreadListRun(thread, outputMode)
 

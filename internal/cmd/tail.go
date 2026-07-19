@@ -20,9 +20,10 @@ func newTailCmd(outputMode *string) *cobra.Command {
 	var mentionsOnly bool
 	var fromUser string
 	cmd := &cobra.Command{
-		Use:   "tail <channel>",
-		Short: "Stream new messages from a channel until interrupted",
-		Args:  cobra.ExactArgs(1),
+		Use:     "tail <channel>",
+		Short:   "Stream new messages from a channel until interrupted",
+		Example: "  mmrun tail python\n  mmrun tail '~town-square' --mentions-only",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

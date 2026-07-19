@@ -33,9 +33,10 @@ type readOpts struct {
 func newReadCmd(outputMode *string) *cobra.Command {
 	var opts readOpts
 	cmd := &cobra.Command{
-		Use:   "read <channel>",
-		Short: "Fetch recent messages from a channel or DM",
-		Args:  cobra.ExactArgs(1),
+		Use:     "read <channel>",
+		Short:   "Fetch recent messages from a channel or DM",
+		Example: "  mmrun read python --limit 20\n  mmrun read '~town-square' --style chat --since 24h\n  mmrun read @alice --full",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

@@ -18,9 +18,10 @@ func newFlaggedCmd(outputMode *string) *cobra.Command {
 	var format string
 	var noMarkdown bool
 	cmd := &cobra.Command{
-		Use:   "flagged",
-		Short: "List posts you flagged",
-		Args:  cobra.NoArgs,
+		Use:     "flagged",
+		Short:   "List posts you flagged",
+		Example: "  mmrun flagged --team sberdevices --limit 20\n  mmrun flag add <post-id>\n  mmrun flag remove <post-id> --yes",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

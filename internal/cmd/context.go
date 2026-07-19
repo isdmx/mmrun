@@ -63,8 +63,11 @@ func initFromEnvAuth(d envAuthData, outputMode string) (*appContext, error) {
 	}
 	prefs := configWithDefaults(cfg, cfgerr)
 	var aliases map[string]string
-	if cfg != nil && cfg.Contexts != nil && cfg.Contexts["default"].Aliases != nil {
-		aliases = cfg.Contexts["default"].Aliases
+	if cfg != nil && cfg.Contexts != nil {
+		ctxName := "default"
+		if ctxCfg, ok := cfg.Contexts[ctxName]; ok {
+			aliases = ctxCfg.Aliases
+		}
 	}
 	return &appContext{
 		api:            cl,

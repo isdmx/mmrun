@@ -12,7 +12,10 @@ import (
 )
 
 func newReactCmd(outputMode *string) *cobra.Command {
-	react := &cobra.Command{Use: "react", Short: "Manage reactions"}
+	react := &cobra.Command{
+		Use: "react", Short: "Manage reactions",
+		Example: "  mmrun react add <post-id> :rocket:\n  mmrun react remove <post-id> :rocket: --yes",
+	}
 
 	add := &cobra.Command{
 		Use:   "add <post-id> <emoji>",
