@@ -60,6 +60,15 @@ func TestRunTail_RendersStreamedPost(t *testing.T) {
 	}
 }
 
+func TestPostUserID(t *testing.T) {
+	post := &model.Post{Id: "p1", UserId: "u9", ChannelId: "c1"}
+	b, _ := json.Marshal(post)
+	data := map[string]any{"post": string(b)}
+	if got := postUserID(data); got != "u9" {
+		t.Errorf("postUserID = %q, want u9", got)
+	}
+}
+
 func TestRunTail_SurfacesStreamError(t *testing.T) {
 	f := &fakeAPI{resolved: &model.Channel{Id: "c1"}, streamErr: context.DeadlineExceeded}
 	app := &appContext{api: f, outputMode: "ai"}

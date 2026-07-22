@@ -14,7 +14,7 @@ import (
 	"github.com/isdmx/mmrun/internal/output"
 )
 
-var messageColumns = []string{"time", "channel", "user", "files", "reactions", "root_id", "post_id", "permalink", "message"}
+var messageColumns = []string{"time", "channel", "user", "files", "pinned", "reactions", "root_id", "post_id", "permalink", "message"}
 
 // renderMessages builds a message Result from posts in the given order. It
 // resolves user IDs to usernames (one batched call), channel IDs to readable
@@ -48,6 +48,7 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 			"time":      time.UnixMilli(p.CreateAt).Format(time.RFC3339),
 			"user":      user,
 			"files":     fileSummary(p),
+			"pinned":    pinnedLabel(p),
 			"reactions": reactions[p.Id],
 			"root_id":   p.RootId,
 			"post_id":   p.Id,
@@ -161,6 +162,14 @@ func preview(s string, maxLen int) string {
 // serverBase returns the server URL without a trailing slash, for permalinks.
 func serverBase(app *appContext) string {
 	return strings.TrimRight(app.api.ServerURL(), "/")
+}
+
+// pinnedLabel returns "📌" for pinned posts, empty string otherwise.
+func pinnedLabel(p *model.Post) string {
+	if p == nil || !p.IsPinned {
+		return ""
+	}
+	return "📌"
 }
 
 // fileSummary describes a post's attachments: the count plus filenames when the

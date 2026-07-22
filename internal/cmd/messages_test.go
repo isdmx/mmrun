@@ -157,3 +157,17 @@ func TestReadHideChannel(t *testing.T) {
 		t.Error("user should have @ prefix")
 	}
 }
+
+func TestPinnedColumn(t *testing.T) {
+	pl := &model.PostList{
+		Order: []string{"p1"},
+		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "hi", UserId: "u2", ChannelId: "c1", CreateAt: 1000, IsPinned: true}},
+	}
+	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "g", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}}}
+	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
+	columns, _ := resolveColumns(messageColumns, "")
+	res := renderMessages(context.Background(), app, "Test", chronological(pl), "", false, columns, true)
+	if res.Rows[0]["pinned"] != "📌" {
+		t.Errorf("pinned = %q, want 📌", res.Rows[0]["pinned"])
+	}
+}

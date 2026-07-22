@@ -60,6 +60,7 @@ func newRootCmd(opts *globalOpts) *cobra.Command {
 	root.AddCommand(newOpenCmd(&opts.outputMode))
 	root.AddCommand(newCopyCmd(&opts.outputMode))
 	root.AddCommand(newContextCmd(&opts.outputMode))
+	root.AddCommand(newStatusCmd(&opts.outputMode))
 	return root
 }
 

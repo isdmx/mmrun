@@ -228,3 +228,5 @@ func (f *fakeAPI) UnpinPost(_ context.Context, id string) error { f.unpinned = i
 func (f *fakeAPI) UsersStatuses(context.Context, []string) ([]*model.Status, error) {
 	return f.statuses, f.err
 }
+func (f *fakeAPI) UpdateStatus(_ context.Context, _, _ string) error          { return f.err }
+func (f *fakeAPI) UpdateCustomStatus(_ context.Context, _, _, _ string) error { return f.err }
