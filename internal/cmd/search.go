@@ -22,6 +22,7 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	var sinceFlag string
 	var beforeFlag string
 	var noMarkdown bool
+	var links bool
 	cmd := &cobra.Command{
 		Use:     "search <query>",
 		Short:   "Search messages (server-side; supports Mattermost search modifiers)",
@@ -38,7 +39,7 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runSearch(app, strings.Join(args, " "), teamName, full, columns, format, style, timeFormat, limit, page, sinceFlag, beforeFlag, !noMarkdown, cmd.OutOrStdout())
+			return runSearch(app, strings.Join(args, " "), teamName, full, columns, format, style, timeFormat, limit, page, sinceFlag, beforeFlag, links, !noMarkdown, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&teamName, "team", "", "team to search within (defaults to your team if you have only one)")
@@ -52,11 +53,12 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&sinceFlag, "since", "", "only posts after this time (duration like 24h or RFC3339)")
 	cmd.Flags().StringVar(&beforeFlag, "before", "", "only posts before this time (RFC3339)")
 	cmd.Flags().BoolVar(&noMarkdown, "no-markdown", false, "disable markdown rendering")
+	cmd.Flags().BoolVar(&links, "links", false, "extract and list URLs from message bodies")
 	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 
-func runSearch(app *appContext, query, teamName string, full bool, columns, format, style, timeFormat string, limit, page int, sinceFlag, beforeFlag string, markdown bool, w io.Writer) error {
+func runSearch(app *appContext, query, teamName string, full bool, columns, format, style, timeFormat string, limit, page int, sinceFlag, beforeFlag string, links bool, markdown bool, w io.Writer) error {
 	ctx := context.Background()
 	teamID, resolvedTeam, err := app.resolveTeam(ctx, teamName)
 	if err != nil {
@@ -84,7 +86,11 @@ func runSearch(app *appContext, query, teamName string, full bool, columns, form
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Search results", postsInOrder(pl), resolvedTeam, full, cols, false)
+	ordered := postsInOrder(pl)
+	if links {
+		return app.render(w, renderLinks(ordered))
+	}
+	res := renderMessages(ctx, app, "Search results", ordered, resolvedTeam, full, cols, false)
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }
 

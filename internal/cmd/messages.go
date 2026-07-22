@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -271,6 +272,31 @@ func resolveStatuses(ctx context.Context, app *appContext, posts []*model.Post) 
 		}
 	}
 	return out
+}
+
+var linkRe = regexp.MustCompile(`https?://\S+`)
+
+func extractLinks(msg string) []string {
+	matches := linkRe.FindAllString(msg, -1)
+	seen := map[string]bool{}
+	var out []string
+	for _, m := range matches {
+		if !seen[m] {
+			seen[m] = true
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+func renderLinks(posts []*model.Post) output.Result {
+	res := output.Result{Title: "Links", Columns: []string{"url", "post_id"}}
+	for _, p := range posts {
+		for _, u := range extractLinks(p.Message) {
+			res.Rows = append(res.Rows, output.Row{"url": u, "post_id": p.Id})
+		}
+	}
+	return res
 }
 
 func filterRoots(posts []*model.Post) []*model.Post {

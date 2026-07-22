@@ -28,6 +28,7 @@ type readOpts struct {
 	tail          bool
 	unreadSummary bool
 	noMarkdown    bool
+	links         bool
 }
 
 func newReadCmd(outputMode *string) *cobra.Command {
@@ -65,6 +66,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.tail, "tail", false, "enter live-stream mode after fetching messages")
 	cmd.Flags().BoolVar(&opts.unreadSummary, "unread-summary", false, "show unread/mention counts after fetching")
 	cmd.Flags().BoolVar(&opts.noMarkdown, "no-markdown", false, "disable markdown rendering")
+	cmd.Flags().BoolVar(&opts.links, "links", false, "extract and list URLs from message bodies")
 	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
@@ -133,6 +135,10 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	posts := chronological(pl)
 	if opts.threadsOnly {
 		posts = filterRoots(posts)
+	}
+
+	if opts.links {
+		return app.render(w, renderLinks(posts))
 	}
 
 	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true)

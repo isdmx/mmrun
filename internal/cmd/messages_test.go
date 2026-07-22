@@ -124,6 +124,20 @@ func TestStatusDots(t *testing.T) {
 	}
 }
 
+func TestExtractLinks(t *testing.T) {
+	msg := "check https://example.com/foo and https://bar.com/baz?q=1"
+	links := extractLinks(msg)
+	if len(links) != 2 || links[0] != "https://example.com/foo" || links[1] != "https://bar.com/baz?q=1" {
+		t.Errorf("links = %v", links)
+	}
+}
+
+func TestExtractLinks_NoLinks(t *testing.T) {
+	if len(extractLinks("no links here")) != 0 {
+		t.Error("expected no links")
+	}
+}
+
 func TestReadHideChannel(t *testing.T) {
 	pl := &model.PostList{
 		Order: []string{"p1"},
