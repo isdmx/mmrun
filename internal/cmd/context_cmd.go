@@ -20,6 +20,20 @@ func newContextCmd(outputMode *string) *cobra.Command {
 	}
 
 	ctxCmd.AddCommand(&cobra.Command{
+		Use:   "current",
+		Short: "Show the active context name",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			st, err := session.LoadAll()
+			if err != nil {
+				return err
+			}
+			_, _ = fmt.Fprintln(cmd.OutOrStdout(), st.Current)
+			return nil
+		},
+	})
+
+	ctxCmd.AddCommand(&cobra.Command{
 		Use:   "list",
 		Short: "List all contexts, active marked with *",
 		Args:  cobra.NoArgs,

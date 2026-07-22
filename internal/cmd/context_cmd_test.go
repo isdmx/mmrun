@@ -22,3 +22,15 @@ func TestContextList(t *testing.T) {
 		t.Error("should list the default context")
 	}
 }
+
+func TestContextCurrent(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	_ = session.Save(&session.Session{ServerURL: "x", Token: "t", UserID: "u1", ContextName: "work"})
+	st, _ := session.LoadAll()
+	st.Current = "work"
+	_ = session.SaveStore(st)
+	st2, _ := session.LoadAll()
+	if st2.Current != "work" {
+		t.Errorf("current = %q, want work", st2.Current)
+	}
+}

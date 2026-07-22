@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,7 +14,7 @@ import (
 	"github.com/isdmx/mmrun/internal/output"
 )
 
-var messageColumns = []string{"time", "channel", "user", "files", "reactions", "root_id", "post_id", "permalink", "message"}
+var messageColumns = []string{"time", "channel", "user", "files", "pinned", "reactions", "root_id", "post_id", "permalink", "message"}
 
 // renderMessages builds a message Result from posts in the given order. It
 // resolves user IDs to usernames (one batched call), channel IDs to readable
@@ -47,6 +48,7 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 			"time":      time.UnixMilli(p.CreateAt).Format(time.RFC3339),
 			"user":      user,
 			"files":     fileSummary(p),
+			"pinned":    pinnedLabel(p),
 			"reactions": reactions[p.Id],
 			"root_id":   p.RootId,
 			"post_id":   p.Id,
@@ -162,6 +164,14 @@ func serverBase(app *appContext) string {
 	return strings.TrimRight(app.api.ServerURL(), "/")
 }
 
+// pinnedLabel returns "📌" for pinned posts, empty string otherwise.
+func pinnedLabel(p *model.Post) string {
+	if p == nil || !p.IsPinned {
+		return ""
+	}
+	return "📌"
+}
+
 // fileSummary describes a post's attachments: the count plus filenames when the
 // post carries file metadata, the count alone otherwise, or "" when there are
 // none.
@@ -271,6 +281,31 @@ func resolveStatuses(ctx context.Context, app *appContext, posts []*model.Post) 
 		}
 	}
 	return out
+}
+
+var linkRe = regexp.MustCompile(`https?://\S+`)
+
+func extractLinks(msg string) []string {
+	matches := linkRe.FindAllString(msg, -1)
+	seen := map[string]bool{}
+	var out []string
+	for _, m := range matches {
+		if !seen[m] {
+			seen[m] = true
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+func renderLinks(posts []*model.Post) output.Result {
+	res := output.Result{Title: "Links", Columns: []string{"url", "post_id"}}
+	for _, p := range posts {
+		for _, u := range extractLinks(p.Message) {
+			res.Rows = append(res.Rows, output.Row{"url": u, "post_id": p.Id})
+		}
+	}
+	return res
 }
 
 func filterRoots(posts []*model.Post) []*model.Post {

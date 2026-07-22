@@ -124,6 +124,20 @@ func TestStatusDots(t *testing.T) {
 	}
 }
 
+func TestExtractLinks(t *testing.T) {
+	msg := "check https://example.com/foo and https://bar.com/baz?q=1"
+	links := extractLinks(msg)
+	if len(links) != 2 || links[0] != "https://example.com/foo" || links[1] != "https://bar.com/baz?q=1" {
+		t.Errorf("links = %v", links)
+	}
+}
+
+func TestExtractLinks_NoLinks(t *testing.T) {
+	if len(extractLinks("no links here")) != 0 {
+		t.Error("expected no links")
+	}
+}
+
 func TestReadHideChannel(t *testing.T) {
 	pl := &model.PostList{
 		Order: []string{"p1"},
@@ -141,5 +155,19 @@ func TestReadHideChannel(t *testing.T) {
 	}
 	if !strings.Contains(out, "user=@bob") {
 		t.Error("user should have @ prefix")
+	}
+}
+
+func TestPinnedColumn(t *testing.T) {
+	pl := &model.PostList{
+		Order: []string{"p1"},
+		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "hi", UserId: "u2", ChannelId: "c1", CreateAt: 1000, IsPinned: true}},
+	}
+	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "g", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}}}
+	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
+	columns, _ := resolveColumns(messageColumns, "")
+	res := renderMessages(context.Background(), app, "Test", chronological(pl), "", false, columns, true)
+	if res.Rows[0]["pinned"] != "📌" {
+		t.Errorf("pinned = %q, want 📌", res.Rows[0]["pinned"])
 	}
 }

@@ -60,6 +60,8 @@ type API interface {
 	ServerURL() string
 	ResolveChannel(ctx context.Context, ref, defaultTeam, selfUserID string) (*model.Channel, error)
 	StreamPosts(ctx context.Context) (<-chan WSEvent, <-chan error, error)
+	UpdateStatus(ctx context.Context, userID, status string) error
+	UpdateCustomStatus(ctx context.Context, userID, emoji, text string) error
 }
 
 // Client wraps model.Client4 and satisfies API.
@@ -313,4 +315,14 @@ func (c *Client) UnpinPost(ctx context.Context, postID string) error {
 func (c *Client) UsersStatuses(ctx context.Context, userIDs []string) ([]*model.Status, error) {
 	ss, _, err := c.mm.GetUsersStatusesByIds(ctx, userIDs)
 	return ss, err
+}
+
+func (c *Client) UpdateStatus(ctx context.Context, userID, status string) error {
+	_, _, err := c.mm.UpdateUserStatus(ctx, userID, &model.Status{UserId: userID, Status: status})
+	return err
+}
+
+func (c *Client) UpdateCustomStatus(ctx context.Context, userID, emoji, text string) error {
+	_, _, err := c.mm.UpdateUserCustomStatus(ctx, userID, &model.CustomStatus{Emoji: emoji, Text: text})
+	return err
 }

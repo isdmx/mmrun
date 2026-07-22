@@ -24,7 +24,7 @@ func TestMentions_TeamScoped(t *testing.T) {
 	}
 	app := &appContext{api: fake, outputMode: "ai", username: "alice", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
-	if err := runMentions(app, "eng", "", 30, false, "", "", "", true, &buf); err != nil {
+	if err := runMentions(app, "eng", "", 30, false, "", "", "", false, true, &buf); err != nil {
 		t.Fatalf("runMentions: %v", err)
 	}
 	out := buf.String()

@@ -91,6 +91,7 @@ mmrun tail incidents
 | `read <channel> --tail` | Fetch messages then enter live-stream mode |
 | `post <channel> [--editor] <msg>` | Post a message; `--editor` opens `$EDITOR` |
 | `context list/add/use/remove` | Manage session contexts (multi-account) |
+| `status [online|away|dnd|offline]` | Set your presence (`--emoji`, `--text`) |
 | `config` | View/edit configuration (`path`, `list`, `get`, `set`, `generate`) |
 | `version` / `--version` | Print version, commit, and build date |
 
