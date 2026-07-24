@@ -16,10 +16,11 @@ import (
 func newReplyCmd(outputMode *string) *cobra.Command {
 	var opts postOpts
 	cmd := &cobra.Command{
-		Use:     "reply <post-id> <message>",
-		Short:   "Reply to a post in its channel",
-		Example: "  mmrun reply <post-id> 'great idea'",
-		Args:    cobra.ExactArgs(2),
+		Use:               "reply <post-id> <message>",
+		Short:             "Reply to a post in its channel",
+		Example:           "  mmrun reply <post-id> 'great idea'",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completePostIDArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {

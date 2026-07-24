@@ -120,6 +120,6 @@ func runMentions(app *appContext, teamName, columns string, limit int, full bool
 	if links {
 		return app.render(w, renderLinks(allPosts))
 	}
-	res := renderMessages(ctx, app, "Mentions", allPosts, permalinkTeam, full, cols, false)
+	res := renderMessages(ctx, app, "Mentions", allPosts, permalinkTeam, full, cols, false, style)
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }

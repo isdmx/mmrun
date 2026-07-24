@@ -79,3 +79,25 @@ func TestChannelSearch(t *testing.T) {
 		t.Errorf("missing searched channel:\n%s", buf.String())
 	}
 }
+
+func TestChannelList_BotLabel(t *testing.T) {
+	dm := &model.Channel{Id: "d1", Name: "u1__u3", Type: model.ChannelTypeDirect}
+	pub := &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}
+	app := &appContext{
+		api: &fakeAPI{
+			teams:    []*model.Team{{Id: "t1", Name: "eng"}},
+			channels: []*model.Channel{pub, dm},
+			users:    []*model.User{{Id: "u3", Username: "botuser"}},
+		},
+		outputMode: "ai",
+		userID:     "u1",
+		botIDs:     []string{"u3"},
+	}
+	var buf bytes.Buffer
+	if err := runChannelList(app, "eng", "all", &buf); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "🤖@botuser") {
+		t.Errorf("bot DM should be labeled with 🤖@botuser:\n%s", buf.String())
+	}
+}

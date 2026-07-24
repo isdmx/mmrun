@@ -62,7 +62,7 @@ func runFlagged(app *appContext, teamName string, limit int, columns string, ful
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Flagged", postsInOrder(pl), resolvedTeam, full, cols, false)
+	res := renderMessages(ctx, app, "Flagged", postsInOrder(pl), resolvedTeam, full, cols, false, style)
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }
 
