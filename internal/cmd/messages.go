@@ -20,7 +20,7 @@ var messageColumns = []string{"time", "channel", "user", "files", "pinned", "rea
 // resolves user IDs to usernames (one batched call), channel IDs to readable
 // names (cached), constructs permalinks when a team is known, and collapses
 // message whitespace for non-JSON output.
-func renderMessages(ctx context.Context, app *appContext, title string, posts []*model.Post, permalinkTeam string, full bool, columns []string, hideChannel bool) output.Result {
+func renderMessages(ctx context.Context, app *appContext, title string, posts []*model.Post, permalinkTeam string, full bool, columns []string, hideChannel bool, style string) output.Result {
 	usernames := resolveUsernames(ctx, app, posts)
 	statuses := resolveStatuses(ctx, app, posts)
 	reactions := resolveReactions(ctx, app, posts)
@@ -72,6 +72,15 @@ func renderMessages(ctx context.Context, app *appContext, title string, posts []
 			row["permalink"] = server + "/" + permalinkTeam + "/pl/" + p.Id
 		}
 		res.Rows = append(res.Rows, row)
+	}
+	if style == "tree" || app.format == "tree" {
+		for i := range res.Rows {
+			if res.Rows[i]["root_id"] == "" {
+				res.Rows[i]["message"] = "● " + res.Rows[i]["message"]
+			} else {
+				res.Rows[i]["message"] = "  ↳ " + res.Rows[i]["message"]
+			}
+		}
 	}
 	return res
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"strconv"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -43,6 +44,12 @@ func runStats(app *appContext, channelRef string, w io.Writer) error {
 			{"field": "members", "value": strconv.FormatInt(s.MemberCount, 10)},
 			{"field": "pinned", "value": strconv.FormatInt(s.PinnedPostCount, 10)},
 		},
+	}
+	if ch.LastPostAt > 0 {
+		res.Rows = append(res.Rows, output.Row{
+			"field": "last_post",
+			"value": time.UnixMilli(ch.LastPostAt).Format(time.RFC3339),
+		})
 	}
 	return app.render(w, res)
 }

@@ -53,6 +53,8 @@ type fakeAPI struct {
 	flaggedPosts  *model.PostList
 	bots          []*model.Bot
 	postFlagged   string
+	searchTerms   string
+	searchCalls   int
 }
 
 var _ client.API = (*fakeAPI)(nil)
@@ -117,7 +119,9 @@ func (f *fakeAPI) CreatePost(_ context.Context, p *model.Post) (*model.Post, err
 	return f.created, f.err
 }
 
-func (f *fakeAPI) Search(context.Context, string, string, bool, int, int) (*model.PostList, error) {
+func (f *fakeAPI) Search(_ context.Context, _ string, terms string, _ bool, _ int, _ int) (*model.PostList, error) {
+	f.searchTerms = terms
+	f.searchCalls++
 	return f.posts, f.err
 }
 

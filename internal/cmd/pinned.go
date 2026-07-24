@@ -61,6 +61,6 @@ func runPinned(app *appContext, channelRef, columns string, full bool, style, ti
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Pinned", chronological(pl), "", full, cols, true)
+	res := renderMessages(ctx, app, "Pinned", chronological(pl), "", full, cols, true, style)
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }

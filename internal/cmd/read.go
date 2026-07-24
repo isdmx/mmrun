@@ -141,7 +141,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 		return app.render(w, renderLinks(posts))
 	}
 
-	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true)
+	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true, opts.style)
 	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat, !opts.noMarkdown)
 	if app.autoMarkRead && markCh != nil {
 		_ = app.api.ViewChannel(ctx, app.userID, markCh.Id)

@@ -90,7 +90,7 @@ func runChannelList(app *appContext, teamName, chType string, w io.Writer) error
 		name, display := c.Name, c.DisplayName
 		if c.Type == model.ChannelTypeDirect {
 			if other := dmLabels[c.Id]; other != "" {
-				name, display = "@"+other, other
+				name, display = other, other
 			}
 		}
 		res.Rows = append(res.Rows, output.Row{
@@ -196,7 +196,14 @@ func directChannelLabels(ctx context.Context, app *appContext, channels []*model
 	labels := map[string]string{}
 	for chID, otherID := range otherByChannel {
 		if n := username[otherID]; n != "" {
-			labels[chID] = n
+			label := "@" + n
+			for _, bid := range app.botIDs {
+				if bid == otherID {
+					label = "🤖" + label
+					break
+				}
+			}
+			labels[chID] = label
 		}
 	}
 	return labels
