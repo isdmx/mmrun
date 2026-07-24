@@ -174,6 +174,18 @@ func settingsFor(c *Config) map[string]setting {
 			},
 			set: func(c *Config, v string) error { c.ThreadsOnly_ = v; return nil },
 		},
+		"auto_mark_read": {
+			description: "automatically mark channels/threads as read on view",
+			def:         "false",
+			validate:    enumValidator("true", "false"),
+			get: func(c *Config) string {
+				if c.AutoMarkRead() {
+					return "true"
+				}
+				return "false"
+			},
+			set: func(c *Config, v string) error { c.AutoMarkRead_ = v; return nil },
+		},
 	}
 }
 

@@ -83,6 +83,7 @@ func addThreadListRun(cmd *cobra.Command, outputMode *string) {
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full root message text instead of a single-line preview")
 	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. user,replies,message)")
 	cmd.Flags().BoolVar(&opts.noMarkdown, "no-markdown", false, "disable markdown rendering")
+	registerTeamFlagCompletion(cmd)
 }
 
 var threadColumns = []string{"last_reply", "channel", "user", "replies", "unread", "files", "post_id", "permalink", "message"}
@@ -163,6 +164,14 @@ func runThreadRead(app *appContext, postID string, markRead bool, format, style,
 	res := renderMessages(ctx, app, "Thread", chronological(pl), "", true, messageColumns, true)
 	if aerr := app.renderOpts(w, res, format, style, timeFormat, markdown); aerr != nil {
 		return aerr
+	}
+	if app.autoMarkRead {
+		if root, ok := pl.Posts[postID]; ok && root != nil {
+			ch, cerr := app.api.Channel(ctx, root.ChannelId)
+			if cerr == nil && ch != nil && ch.TeamId != "" {
+				_ = app.api.UpdateThreadRead(ctx, app.userID, ch.TeamId, postID)
+			}
+		}
 	}
 	if markRead {
 		if root, ok := threadRoot(pl, postID); ok {

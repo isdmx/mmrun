@@ -34,6 +34,7 @@ type appContext struct {
 	timeFormat     string
 	full           bool
 	threadsOnly    bool
+	autoMarkRead   bool
 	botIDs         []string
 	aliases        map[string]string
 	markdown       bool
@@ -87,6 +88,7 @@ func initFromEnvAuth(d envAuthData, outputMode string) (*appContext, error) {
 		style:          prefs.style,
 		timeFormat:     prefs.timeFormat,
 		threadsOnly:    prefs.threadsOnly,
+		autoMarkRead:   prefs.autoMarkRead,
 		botIDs:         botIDs,
 		aliases:        aliases,
 		markdown:       prefs.markdown,
@@ -152,6 +154,7 @@ func initFromSession(outputMode string) (*appContext, error) {
 		timeFormat:     cfg.TimeFormat(),
 		full:           cfg.Full(),
 		threadsOnly:    cfg.ThreadsOnly(),
+		autoMarkRead:   cfg.AutoMarkRead(),
 		botIDs:         botIDs,
 		aliases:        aliases,
 		markdown:       cfg.Markdown(),
@@ -165,6 +168,7 @@ type configPrefs struct {
 	markdown                         bool
 	full                             bool
 	threadsOnly                      bool
+	autoMarkRead                     bool
 }
 
 // configWithDefaults applies defaults to zero config values.
@@ -182,6 +186,7 @@ func configWithDefaults(cfg *config.Config, loadErr error) configPrefs {
 		p.markdown = cfg.Markdown()
 		p.full = cfg.Full()
 		p.threadsOnly = cfg.ThreadsOnly()
+		p.autoMarkRead = cfg.AutoMarkRead()
 	}
 	if p.previewLen == 0 {
 		p.previewLen = 140

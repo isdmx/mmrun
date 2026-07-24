@@ -143,13 +143,22 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 
 	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true)
 	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat, !opts.noMarkdown)
+	if app.autoMarkRead && markCh != nil {
+		_ = app.api.ViewChannel(ctx, app.userID, markCh.Id)
+	}
 	if opts.markRead && markCh != nil {
 		if herr := app.api.ViewChannel(ctx, app.userID, markCh.Id); herr != nil {
 			return herr
 		}
 		fmt.Fprintf(os.Stderr, "Marked %s as read.\n", markCh.Name)
 	}
-	if opts.unreadSummary {
+	handleReadPostRender(app, ch, channelRef, opts, w)
+	return aerr
+}
+
+func handleReadPostRender(app *appContext, ch *model.Channel, channelRef string, opts readOpts, w io.Writer) {
+	ctx := context.Background()
+	if opts.unreadSummary && ch != nil {
 		unread, err := app.api.ChannelUnread(ctx, ch.Id, app.userID)
 		if err == nil && unread != nil {
 			if unread.MsgCount > 0 {
@@ -166,7 +175,6 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 			fmt.Fprintf(os.Stderr, "tail: %v\n", terr)
 		}
 	}
-	return aerr
 }
 
 // permalinkTeamFor returns the team name usable in a permalink for a channel,

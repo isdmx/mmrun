@@ -12,10 +12,11 @@ import (
 
 func newStatsCmd(outputMode *string) *cobra.Command {
 	return &cobra.Command{
-		Use:     "stats <channel>",
-		Short:   "Show channel statistics",
-		Example: "  mmrun stats python\n  mmrun stats '~town-square'",
-		Args:    cobra.ExactArgs(1),
+		Use:               "stats <channel>",
+		Short:             "Show channel statistics",
+		Example:           "  mmrun stats python\n  mmrun stats '~town-square'",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeChannelArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireSession(*outputMode)
 			if err != nil {
