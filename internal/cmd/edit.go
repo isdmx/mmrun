@@ -11,18 +11,52 @@ import (
 	"github.com/isdmx/mmrun/internal/output"
 )
 
-//nolint:gocognit // stdin batch pattern inlined per command per task spec
+//nolint:gocognit,gocyclo,funlen // stdin batch pattern inlined per command per task spec
 func newEditCmd(outputMode *string) *cobra.Command {
 	edit := &cobra.Command{
 		Use: "edit", Short: "Edit and delete posts",
 		Example: "  mmrun edit edit <post-id> 'new text'\n  mmrun edit delete <post-id> --yes",
 	}
 
+	var editNoStdin bool
 	editPost := &cobra.Command{
 		Use:   "edit <post-id> <msg>",
 		Short: "Edit the text of a post",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 && !editNoStdin && isStdinPipe() {
+				targets, serr := readStdinTargets()
+				if serr != nil {
+					return serr
+				}
+				if len(targets) == 0 {
+					return fmt.Errorf("no targets on stdin")
+				}
+				app, aerr := requireSession(*outputMode)
+				if aerr != nil {
+					return aerr
+				}
+				msg := args[0]
+				success, failed := 0, 0
+				for _, id := range targets {
+					if _, perr := app.api.PatchPost(context.Background(), id, msg); perr != nil {
+						fmt.Fprintf(os.Stderr, "mmrun: edit %s: %v\n", id, perr)
+						failed++
+					} else {
+						success++
+					}
+				}
+				if success == 0 {
+					return fmt.Errorf("all %d targets failed", len(targets))
+				}
+				if failed > 0 {
+					return ErrPartialSuccess
+				}
+				return nil
+			}
+			if len(args) == 0 {
+				return fmt.Errorf("requires a post-id argument or piped input and a message")
+			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
@@ -30,6 +64,7 @@ func newEditCmd(outputMode *string) *cobra.Command {
 			return runEdit(app, args[0], args[1], cmd.OutOrStdout())
 		},
 	}
+	editPost.Flags().BoolVar(&editNoStdin, "no-stdin", false, "read post ID from positional arg even when piped")
 	editPost.ValidArgsFunction = completePostIDArg
 	edit.AddCommand(editPost)
 
