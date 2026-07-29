@@ -35,6 +35,7 @@ type appContext struct {
 	style          string
 	timeFormat     string
 	full           bool
+	quiet          bool
 	threadsOnly    bool
 	autoMarkRead   bool
 	botIDs         []string

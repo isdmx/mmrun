@@ -11,6 +11,8 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 type readOpts struct {
@@ -42,20 +44,17 @@ func newReadCmd(outputMode *string) *cobra.Command {
 		Args:    cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && !noStdin && isStdinPipe() {
-				return runReadStdin(outputMode, opts, cmd)
+				return runReadStdin(outputMode, opts, cmd, quiet)
 			}
 			if len(args) == 0 {
 				return fmt.Errorf("requires a channel argument or piped input")
 			}
 			app, err := requireSession(*outputMode)
-			if !cmd.Flags().Changed("full") {
-				opts.full = app.full
-			}
-			if !cmd.Flags().Changed("full") {
-				opts.full = app.full
-			}
 			if err != nil {
 				return err
+			}
+			if !cmd.Flags().Changed("full") {
+				opts.full = app.full
 			}
 			return runRead(app, args[0], opts, cmd.OutOrStdout())
 		},
@@ -81,7 +80,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	return cmd
 }
 
-func runReadStdin(outputMode *string, opts readOpts, cmd *cobra.Command) error {
+func runReadStdin(outputMode *string, opts readOpts, cmd *cobra.Command, quiet bool) error {
 	targets, serr := readStdinTargets()
 	if serr != nil {
 		return serr
@@ -93,6 +92,7 @@ func runReadStdin(outputMode *string, opts readOpts, cmd *cobra.Command) error {
 	if aerr != nil {
 		return aerr
 	}
+	app.quiet = quiet
 	if !cmd.Flags().Changed("full") {
 		opts.full = app.full
 	}
@@ -185,6 +185,9 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	}
 
 	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true, opts.style)
+	if app.quiet {
+		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
+	}
 	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat, !opts.noMarkdown)
 	if app.autoMarkRead && markCh != nil {
 		_ = app.api.ViewChannel(ctx, app.userID, markCh.Id)

@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newFlaggedCmd(outputMode *string) *cobra.Command {
@@ -18,6 +20,7 @@ func newFlaggedCmd(outputMode *string) *cobra.Command {
 	var timeFormat string
 	var format string
 	var noMarkdown bool
+	var quiet bool
 	cmd := &cobra.Command{
 		Use:     "flagged",
 		Short:   "List posts you flagged",
@@ -31,7 +34,7 @@ func newFlaggedCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runFlagged(app, team, limit, columns, full, style, timeFormat, format, !noMarkdown, cmd.OutOrStdout())
+			return runFlagged(app, team, limit, columns, full, style, timeFormat, format, !noMarkdown, quiet, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&team, "team", "", "restrict to this team")
@@ -42,10 +45,11 @@ func newFlaggedCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
 	cmd.Flags().StringVar(&format, "format", "", "output format: table|tree")
 	cmd.Flags().BoolVar(&noMarkdown, "no-markdown", false, "disable markdown rendering")
+	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "output only post IDs, one per line")
 	return cmd
 }
 
-func runFlagged(app *appContext, teamName string, limit int, columns string, full bool, style, timeFormat, format string, markdown bool, w io.Writer) error {
+func runFlagged(app *appContext, teamName string, limit int, columns string, full bool, style, timeFormat, format string, markdown, quiet bool, w io.Writer) error {
 	ctx := context.Background()
 	teamID, resolvedTeam, err := app.resolveTeam(ctx, teamName)
 	if err != nil {
@@ -64,6 +68,9 @@ func runFlagged(app *appContext, teamName string, limit int, columns string, ful
 		return err
 	}
 	res := renderMessages(ctx, app, "Flagged", postsInOrder(pl), resolvedTeam, full, cols, false, style)
+	if quiet {
+		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
+	}
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }
 

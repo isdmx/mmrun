@@ -21,6 +21,7 @@ type threadListOpts struct {
 	full       bool
 	columns    string
 	noMarkdown bool
+	quiet      bool
 }
 
 func newThreadCmd(outputMode *string) *cobra.Command {
@@ -117,6 +118,7 @@ func addThreadListRun(cmd *cobra.Command, outputMode *string) {
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full root message text instead of a single-line preview")
 	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. user,replies,message)")
 	cmd.Flags().BoolVar(&opts.noMarkdown, "no-markdown", false, "disable markdown rendering")
+	cmd.Flags().BoolVarP(&opts.quiet, "quiet", "q", false, "output only post IDs, one per line")
 	registerTeamFlagCompletion(cmd)
 }
 
@@ -185,6 +187,9 @@ func runThreadList(app *appContext, opts threadListOpts, w io.Writer) error {
 			}
 			res.Rows = append(res.Rows, row)
 		}
+	}
+	if opts.quiet {
+		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
 	}
 	return app.renderOpts(w, res, "", "", "", !opts.noMarkdown)
 }

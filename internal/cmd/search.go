@@ -8,6 +8,8 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newSearchCmd(outputMode *string) *cobra.Command {
@@ -26,6 +28,7 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	var fromUser string
 	var inChannel string
 	var typeFilter string
+	var quiet bool
 	cmd := &cobra.Command{
 		Use:     "search <query>",
 		Short:   "Search messages (server-side; supports Mattermost search modifiers)",
@@ -42,7 +45,7 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runSearch(app, strings.Join(args, " "), teamName, full, columns, format, style, timeFormat, limit, page, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter, links, !noMarkdown, cmd.OutOrStdout())
+			return runSearch(app, strings.Join(args, " "), teamName, full, columns, format, style, timeFormat, limit, page, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter, links, !noMarkdown, quiet, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&teamName, "team", "", "team to search within (defaults to your team if you have only one)")
@@ -60,11 +63,12 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&fromUser, "from", "", "filter posts by this user")
 	cmd.Flags().StringVar(&inChannel, "in", "", "search only in this channel")
 	cmd.Flags().StringVar(&typeFilter, "type", "", "channel type: public|private")
+	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "output only post IDs, one per line")
 	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 
-func runSearch(app *appContext, query, teamName string, full bool, columns, format, style, timeFormat string, limit, page int, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter string, links bool, markdown bool, w io.Writer) error {
+func runSearch(app *appContext, query, teamName string, full bool, columns, format, style, timeFormat string, limit, page int, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter string, links bool, markdown, quiet bool, w io.Writer) error {
 	ctx := context.Background()
 	query = appendSearchModifiers(ctx, app, query, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter)
 	spec := columns
@@ -72,7 +76,7 @@ func runSearch(app *appContext, query, teamName string, full bool, columns, form
 		spec = app.columnsDefault
 	}
 	if teamName == "" {
-		return searchAllTeams(ctx, app, query, full, spec, format, style, timeFormat, limit, page, links, markdown, w)
+		return searchAllTeams(ctx, app, query, full, spec, format, style, timeFormat, limit, page, links, markdown, quiet, w)
 	}
 	teamID, resolvedTeam, err := app.resolveTeam(ctx, teamName)
 	if err != nil {
@@ -91,6 +95,9 @@ func runSearch(app *appContext, query, teamName string, full bool, columns, form
 		return app.render(w, renderLinks(ordered))
 	}
 	res := renderMessages(ctx, app, "Search results", ordered, resolvedTeam, full, cols, false, style)
+	if quiet {
+		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
+	}
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }
 
@@ -123,7 +130,7 @@ func appendSearchModifiers(ctx context.Context, app *appContext, query, sinceFla
 	return query
 }
 
-func searchAllTeams(ctx context.Context, app *appContext, query string, full bool, spec, format, style, timeFormat string, limit, page int, links bool, markdown bool, w io.Writer) error {
+func searchAllTeams(ctx context.Context, app *appContext, query string, full bool, spec, format, style, timeFormat string, limit, page int, links bool, markdown, quiet bool, w io.Writer) error {
 	teams, err := app.api.TeamsForUser(ctx, app.userID)
 	if err != nil {
 		return err
@@ -150,6 +157,9 @@ func searchAllTeams(ctx context.Context, app *appContext, query string, full boo
 		return app.render(w, renderLinks(allPosts))
 	}
 	res := renderMessages(ctx, app, "Search results", allPosts, permalinkTeam, full, cols, false, style)
+	if quiet {
+		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
+	}
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }
 

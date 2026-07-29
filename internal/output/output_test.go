@@ -116,3 +116,40 @@ func TestHumanCodeBlock(t *testing.T) {
 		t.Error("code block should contain ANSI from chroma")
 	}
 }
+
+func TestQuietRenderer(t *testing.T) {
+	var buf bytes.Buffer
+	r := quietRenderer{column: "post_id"}
+	res := Result{
+		Columns: []string{"post_id", "message"},
+		Rows: []Row{
+			{"post_id": "abc123", "message": "hello"},
+			{"post_id": "def456", "message": "world"},
+		},
+	}
+	if err := r.Render(&buf, res); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 2 || lines[0] != "abc123" || lines[1] != "def456" {
+		t.Errorf("expected abc123\\ndef456, got %q", buf.String())
+	}
+}
+
+func TestQuietRendererSkipsEmpty(t *testing.T) {
+	var buf bytes.Buffer
+	r := quietRenderer{column: "post_id"}
+	res := Result{
+		Columns: []string{"post_id", "message"},
+		Rows: []Row{
+			{"post_id": "", "message": "empty id"},
+			{"post_id": "abc123", "message": "hello"},
+		},
+	}
+	if err := r.Render(&buf, res); err != nil {
+		t.Fatal(err)
+	}
+	if buf.String() != "abc123\n" {
+		t.Errorf("expected only abc123\\n, got %q", buf.String())
+	}
+}

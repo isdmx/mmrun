@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -89,6 +90,9 @@ func Run() int {
 // printError writes err to stderr, as a JSON object when the output mode is
 // "json", otherwise as a plain prefixed line.
 func printError(err error, outputMode string) {
+	if errors.Is(err, ErrPartialSuccess) {
+		return
+	}
 	if msg := friendlyMsg(err); msg != "" {
 		fmt.Fprintln(os.Stderr, "mmrun:", msg)
 	}
