@@ -53,11 +53,17 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && !noStdinRead && isStdinPipe() {
-				targets, _ := readStdinTargets()
+				targets, serr := readStdinTargets()
+				if serr != nil {
+					return serr
+				}
 				if len(targets) == 0 {
 					return fmt.Errorf("no targets on stdin")
 				}
-				app, _ := requireSession(*outputMode)
+				app, aerr := requireSession(*outputMode)
+				if aerr != nil {
+					return aerr
+				}
 				success, failed := 0, 0
 				for _, id := range targets {
 					if perr := runThreadRead(app, id, markRead, format, "", "", !noMarkdown, cmd.OutOrStdout()); perr != nil {
@@ -74,6 +80,9 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 					return ErrPartialSuccess
 				}
 				return nil
+			}
+			if len(args) == 0 {
+				return fmt.Errorf("requires a post-id argument or piped input")
 			}
 			app, err := requireSession(*outputMode)
 			if err != nil {

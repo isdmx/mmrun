@@ -49,6 +49,9 @@ func newMarkReadCmd(outputMode *string) *cobra.Command {
 				}
 				return nil
 			}
+			if len(args) == 0 {
+				return fmt.Errorf("requires an id argument or piped input")
+			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err

@@ -51,6 +51,9 @@ func newPinCmd(outputMode *string) *cobra.Command {
 				}
 				return nil
 			}
+			if len(args) == 0 {
+				return fmt.Errorf("requires a post-id argument or piped input")
+			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
@@ -101,6 +104,9 @@ func newPinCmd(outputMode *string) *cobra.Command {
 					return ErrPartialSuccess
 				}
 				return nil
+			}
+			if len(args) == 0 {
+				return fmt.Errorf("requires a post-id argument or piped input")
 			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
