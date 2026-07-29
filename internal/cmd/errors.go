@@ -23,8 +23,15 @@ func ExitCode(err error) int {
 	case 404:
 		return 3
 	}
+	if errors.Is(err, ErrPartialSuccess) {
+		return 0
+	}
 	return 1
 }
+
+// ErrPartialSuccess signals that at least one target in a batch failed but
+// others succeeded (errors already printed to stderr). Exit code 0.
+var ErrPartialSuccess = errors.New("partial success")
 
 // friendlyMsg returns a user-facing suggestion for known HTTP status codes.
 func friendlyMsg(err error) string {
