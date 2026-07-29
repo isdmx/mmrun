@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -66,26 +67,89 @@ func runFlagged(app *appContext, teamName string, limit int, columns string, ful
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }
 
+//nolint:gocognit,gocyclo // stdin batch pattern inlined per command per task spec
 func newFlagCmd(outputMode *string) *cobra.Command {
 	flag := &cobra.Command{Use: "flag", Short: "Flag and unflag posts"}
 
-	flag.AddCommand(&cobra.Command{
-		Use: "add <post-id>", Short: "Flag a post", Args: cobra.ExactArgs(1),
+	var noStdin bool
+	flagAdd := &cobra.Command{
+		Use: "add <post-id>", Short: "Flag a post", Args: cobra.RangeArgs(0, 1),
 		RunE: func(_ *cobra.Command, args []string) error {
+			if len(args) == 0 && !noStdin && isStdinPipe() {
+				targets, serr := readStdinTargets()
+				if serr != nil {
+					return serr
+				}
+				if len(targets) == 0 {
+					return fmt.Errorf("no targets on stdin")
+				}
+				app, err := requireSession(*outputMode)
+				if err != nil {
+					return err
+				}
+				success, failed := 0, 0
+				for _, id := range targets {
+					if perr := app.api.FlagPost(context.Background(), id); perr != nil {
+						fmt.Fprintf(os.Stderr, "mmrun: flag %s: %v\n", id, perr)
+						failed++
+					} else {
+						success++
+					}
+				}
+				if success == 0 {
+					return fmt.Errorf("all %d targets failed", len(targets))
+				}
+				if failed > 0 {
+					return ErrPartialSuccess
+				}
+				return nil
+			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
 			}
 			return app.api.FlagPost(context.Background(), args[0])
 		},
-	})
+	}
+	flagAdd.Flags().BoolVar(&noStdin, "no-stdin", false, "read post ID from positional arg even when piped")
+	flag.AddCommand(flagAdd)
 
 	var yes bool
+	var noStdinRemove bool
 	remove := &cobra.Command{
-		Use: "remove <post-id> --yes", Short: "Unflag a post", Args: cobra.ExactArgs(1),
+		Use: "remove <post-id> --yes", Short: "Unflag a post", Args: cobra.RangeArgs(0, 1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			if !yes {
 				return fmt.Errorf("unflag requires --yes to confirm")
+			}
+			if len(args) == 0 && !noStdinRemove && isStdinPipe() {
+				targets, serr := readStdinTargets()
+				if serr != nil {
+					return serr
+				}
+				if len(targets) == 0 {
+					return fmt.Errorf("no targets on stdin")
+				}
+				app, err := requireSession(*outputMode)
+				if err != nil {
+					return err
+				}
+				success, failed := 0, 0
+				for _, id := range targets {
+					if perr := app.api.UnflagPost(context.Background(), id); perr != nil {
+						fmt.Fprintf(os.Stderr, "mmrun: unflag %s: %v\n", id, perr)
+						failed++
+					} else {
+						success++
+					}
+				}
+				if success == 0 {
+					return fmt.Errorf("all %d targets failed", len(targets))
+				}
+				if failed > 0 {
+					return ErrPartialSuccess
+				}
+				return nil
 			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
@@ -95,6 +159,7 @@ func newFlagCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	remove.Flags().BoolVar(&yes, "yes", false, "confirm removal")
+	remove.Flags().BoolVar(&noStdinRemove, "no-stdin", false, "read post ID from positional arg even when piped")
 	flag.AddCommand(remove)
 	return flag
 }

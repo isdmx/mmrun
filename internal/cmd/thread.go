@@ -46,11 +46,35 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 	var style string
 	var timeFormat string
 	var noMarkdown bool
+	var noStdinRead bool
 	threadRead := &cobra.Command{
 		Use:   "read <post-id>",
 		Short: "Read a thread and optionally mark it as read",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 && !noStdinRead && isStdinPipe() {
+				targets, _ := readStdinTargets()
+				if len(targets) == 0 {
+					return fmt.Errorf("no targets on stdin")
+				}
+				app, _ := requireSession(*outputMode)
+				success, failed := 0, 0
+				for _, id := range targets {
+					if perr := runThreadRead(app, id, markRead, format, "", "", !noMarkdown, cmd.OutOrStdout()); perr != nil {
+						fmt.Fprintf(os.Stderr, "mmrun: thread %s: %v\n", id, perr)
+						failed++
+					} else {
+						success++
+					}
+				}
+				if success == 0 {
+					return fmt.Errorf("all %d targets failed", len(targets))
+				}
+				if failed > 0 {
+					return ErrPartialSuccess
+				}
+				return nil
+			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
@@ -63,6 +87,7 @@ func newThreadCmd(outputMode *string) *cobra.Command {
 	threadRead.Flags().StringVar(&style, "style", "", "output style: table|chat|tree (default from config)")
 	threadRead.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
 	threadRead.Flags().BoolVar(&noMarkdown, "no-markdown", false, "disable markdown rendering")
+	threadRead.Flags().BoolVar(&noStdinRead, "no-stdin", false, "read post ID from positional arg even when piped")
 	threadRead.ValidArgsFunction = completePostIDArg
 	thread.AddCommand(threadRead)
 	return thread

@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/isdmx/mmrun/internal/output"
 )
 
+//nolint:gocognit // stdin batch pattern inlined per command per task spec
 func newEditCmd(outputMode *string) *cobra.Command {
 	edit := &cobra.Command{
 		Use: "edit", Short: "Edit and delete posts",
@@ -32,13 +34,44 @@ func newEditCmd(outputMode *string) *cobra.Command {
 	edit.AddCommand(editPost)
 
 	var yes bool
+	var noStdin bool
 	del := &cobra.Command{
 		Use:   "delete <post-id>",
 		Short: "Delete a post (requires --yes)",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !yes {
 				return fmt.Errorf("delete requires --yes to confirm")
+			}
+			if len(args) == 0 && !noStdin && isStdinPipe() {
+				targets, serr := readStdinTargets()
+				if serr != nil {
+					return serr
+				}
+				if len(targets) == 0 {
+					return fmt.Errorf("no targets on stdin")
+				}
+				app, err := requireSession(*outputMode)
+				if err != nil {
+					return err
+				}
+				success, failed := 0, 0
+				for _, id := range targets {
+					if perr := app.api.DeletePost(context.Background(), id); perr != nil {
+						fmt.Fprintf(os.Stderr, "mmrun: delete %s: %v\n", id, perr)
+						failed++
+					} else {
+						fmt.Fprintf(os.Stderr, "deleted %s\n", id)
+						success++
+					}
+				}
+				if success == 0 {
+					return fmt.Errorf("all %d targets failed", len(targets))
+				}
+				if failed > 0 {
+					return ErrPartialSuccess
+				}
+				return nil
 			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
@@ -48,6 +81,7 @@ func newEditCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	del.Flags().BoolVar(&yes, "yes", false, "confirm deletion")
+	del.Flags().BoolVar(&noStdin, "no-stdin", false, "read post ID from positional arg even when piped")
 	del.ValidArgsFunction = completePostIDArg
 	edit.AddCommand(del)
 

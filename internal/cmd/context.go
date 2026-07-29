@@ -292,16 +292,12 @@ func (a *appContext) resolveTeam(ctx context.Context, name string) (id, resolved
 }
 
 // isStdinPipe reports whether stdin is connected to a pipe (not a TTY).
-//
-//nolint:unused // used by upcoming stdin-aware commands (Tasks 3-5)
 func isStdinPipe() bool {
 	return !term.IsTerminal(int(os.Stdin.Fd()))
 }
 
 // readStdinTargets reads lines from stdin, trims whitespace, and skips empty
 // lines. Returns the non-empty target strings.
-//
-//nolint:unused // used by upcoming stdin-aware commands (Tasks 3-5)
 func readStdinTargets() ([]string, error) {
 	var targets []string
 	scanner := bufio.NewScanner(os.Stdin)
