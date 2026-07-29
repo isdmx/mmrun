@@ -53,6 +53,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			app.quiet = quiet
 			if !cmd.Flags().Changed("full") {
 				opts.full = app.full
 			}
