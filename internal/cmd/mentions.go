@@ -8,6 +8,8 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 func newMentionsCmd(outputMode *string) *cobra.Command {
@@ -20,6 +22,7 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	var timeFormat string
 	var noMarkdown bool
 	var links bool
+	var quiet bool
 	cmd := &cobra.Command{
 		Use:     "mentions",
 		Short:   "Search posts that mention you",
@@ -36,7 +39,7 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runMentions(app, teamName, columns, limit, full, format, style, timeFormat, links, !noMarkdown, cmd.OutOrStdout())
+			return runMentions(app, teamName, columns, limit, full, format, style, timeFormat, links, !noMarkdown, quiet, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&teamName, "team", "", "restrict to this team")
@@ -48,11 +51,12 @@ func newMentionsCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
 	cmd.Flags().BoolVar(&noMarkdown, "no-markdown", false, "disable markdown rendering")
 	cmd.Flags().BoolVar(&links, "links", false, "extract and list URLs from message bodies")
+	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "output only post IDs, one per line")
 	registerTeamFlagCompletion(cmd)
 	return cmd
 }
 
-func runMentions(app *appContext, teamName, columns string, limit int, full bool, format, style, timeFormat string, links bool, markdown bool, w io.Writer) error {
+func runMentions(app *appContext, teamName, columns string, limit int, full bool, format, style, timeFormat string, links bool, markdown, quiet bool, w io.Writer) error {
 	ctx := context.Background()
 	if app.username == "" {
 		return fmt.Errorf("no username in session; re-login to store it")
@@ -121,5 +125,8 @@ func runMentions(app *appContext, teamName, columns string, limit int, full bool
 		return app.render(w, renderLinks(allPosts))
 	}
 	res := renderMessages(ctx, app, "Mentions", allPosts, permalinkTeam, full, cols, false, style)
+	if quiet {
+		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
+	}
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }

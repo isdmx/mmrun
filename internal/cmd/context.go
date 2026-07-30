@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
+	"golang.org/x/term"
 
 	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/config"
@@ -33,6 +35,7 @@ type appContext struct {
 	style          string
 	timeFormat     string
 	full           bool
+	quiet          bool
 	threadsOnly    bool
 	autoMarkRead   bool
 	botIDs         []string
@@ -287,6 +290,28 @@ func (a *appContext) resolveTeam(ctx context.Context, name string) (id, resolved
 		}
 	}
 	return "", "", fmt.Errorf("team %q not found among your memberships", name)
+}
+
+// isStdinPipe reports whether stdin is connected to a pipe (not a TTY).
+func isStdinPipe() bool {
+	return !term.IsTerminal(int(os.Stdin.Fd()))
+}
+
+// readStdinTargets reads lines from stdin, trims whitespace, and skips empty
+// lines. Returns the non-empty target strings.
+func readStdinTargets() ([]string, error) {
+	var targets []string
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" {
+			targets = append(targets, line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return targets, nil
 }
 
 // reLogin prompts the user to re-authenticate when the session has expired.

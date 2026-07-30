@@ -3,6 +3,7 @@
 package output
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -28,13 +29,15 @@ type Renderer interface {
 
 // Options tune rendering (colorization and highlighting) for human output.
 type Options struct {
-	Color      string   // "auto" | "always" | "never" | "" (=auto)
-	Highlight  []string // terms to emphasize in cells (human mode only)
-	Format     string   // "table" (default) or "tree"
-	Theme      string   // "dark"|"light"|"minimal"|""
-	Style      string   // "table"|"chat"|"tree" (default "table")
-	TimeFormat string   // "rfc3339"|"relative" (default "rfc3339")
-	Markdown   bool
+	Color       string   // "auto" | "always" | "never" | "" (=auto)
+	Highlight   []string // terms to emphasize in cells (human mode only)
+	Format      string   // "table" (default) or "tree"
+	Theme       string   // "dark"|"light"|"minimal"|""
+	Style       string   // "table"|"chat"|"tree" (default "table")
+	TimeFormat  string   // "rfc3339"|"relative" (default "rfc3339")
+	Markdown    bool
+	Quiet       bool   // when true, output only the QuietColumn values
+	QuietColumn string // column name to extract (e.g. "post_id")
 }
 
 // colorEnabled reports whether ANSI color should be emitted for the given color
@@ -88,6 +91,9 @@ func New(requested string, out *os.File) Renderer {
 
 // NewWithOptions returns a Renderer honoring the given color/highlight options.
 func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
+	if opts.Quiet {
+		return quietRenderer{column: opts.QuietColumn}
+	}
 	isTTY := IsTTY(out)
 	mode := resolveMode(requested, isTTY)
 	if mode != "human" {
@@ -118,4 +124,17 @@ func NewWithOptions(requested string, out *os.File, opts Options) Renderer {
 	default:
 		return humanRenderer{color: col, highlight: opts.Highlight, theme: themeObj, timeFormat: opts.TimeFormat, markdown: opts.Markdown}
 	}
+}
+
+type quietRenderer struct{ column string }
+
+func (q quietRenderer) Render(w io.Writer, r Result) error {
+	for _, row := range r.Rows {
+		if v, ok := row[q.column]; ok && v != "" {
+			if _, err := fmt.Fprintln(w, v); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

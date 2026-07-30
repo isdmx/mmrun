@@ -12,13 +12,46 @@ import (
 
 func newMarkReadCmd(outputMode *string) *cobra.Command {
 	var typeFlag string
+	var noStdin bool
 	cmd := &cobra.Command{
 		Use:               "mark-read <id>",
 		Short:             "Mark a channel or thread as read",
 		Example:           "  mmrun mark-read <channel-id> --type channel\n  mmrun mark-read <post-id> --type thread",
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.RangeArgs(0, 1),
 		ValidArgsFunction: completeChannelArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 && !noStdin && isStdinPipe() {
+				targets, serr := readStdinTargets()
+				if serr != nil {
+					return serr
+				}
+				if len(targets) == 0 {
+					return fmt.Errorf("no targets on stdin")
+				}
+				app, err := requireSession(*outputMode)
+				if err != nil {
+					return err
+				}
+				success, failed := 0, 0
+				for _, id := range targets {
+					if perr := runMarkRead(app, id, typeFlag, cmd.OutOrStdout()); perr != nil {
+						fmt.Fprintf(os.Stderr, "mmrun: mark-read %s: %v\n", id, perr)
+						failed++
+					} else {
+						success++
+					}
+				}
+				if success == 0 {
+					return fmt.Errorf("all %d targets failed", len(targets))
+				}
+				if failed > 0 {
+					return ErrPartialSuccess
+				}
+				return nil
+			}
+			if len(args) == 0 {
+				return fmt.Errorf("requires an id argument or piped input")
+			}
 			app, err := requireSession(*outputMode)
 			if err != nil {
 				return err
@@ -27,6 +60,7 @@ func newMarkReadCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&typeFlag, "type", "", "channel|thread (auto-detected if omitted)")
+	cmd.Flags().BoolVar(&noStdin, "no-stdin", false, "read post ID from positional arg even when piped")
 	return cmd
 }
 

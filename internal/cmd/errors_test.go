@@ -22,6 +22,12 @@ func TestExitCode(t *testing.T) {
 	}
 }
 
+func TestExitCode_PartialSuccess(t *testing.T) {
+	if got := ExitCode(ErrPartialSuccess); got != 0 {
+		t.Errorf("ErrPartialSuccess must return exit code 0, got %d", got)
+	}
+}
+
 func TestExitCode_HTTPStatus(t *testing.T) {
 	unauth := &model.AppError{StatusCode: 401, Message: "unauthorized"}
 	if got := ExitCode(unauth); got != 2 {

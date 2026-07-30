@@ -11,6 +11,8 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
+
+	"github.com/isdmx/mmrun/internal/output"
 )
 
 type readOpts struct {
@@ -33,21 +35,27 @@ type readOpts struct {
 
 func newReadCmd(outputMode *string) *cobra.Command {
 	var opts readOpts
+	var quiet bool
+	var noStdin bool
 	cmd := &cobra.Command{
 		Use:     "read <channel>",
 		Short:   "Fetch recent messages from a channel or DM",
 		Example: "  mmrun read python --limit 20\n  mmrun read '~town-square' --style chat --since 24h\n  mmrun read @alice --full",
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 && !noStdin && isStdinPipe() {
+				return runReadStdin(outputMode, opts, cmd, quiet)
+			}
+			if len(args) == 0 {
+				return fmt.Errorf("requires a channel argument or piped input")
+			}
 			app, err := requireSession(*outputMode)
-			if !cmd.Flags().Changed("full") {
-				opts.full = app.full
-			}
-			if !cmd.Flags().Changed("full") {
-				opts.full = app.full
-			}
 			if err != nil {
 				return err
+			}
+			app.quiet = quiet
+			if !cmd.Flags().Changed("full") {
+				opts.full = app.full
 			}
 			return runRead(app, args[0], opts, cmd.OutOrStdout())
 		},
@@ -67,8 +75,44 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.unreadSummary, "unread-summary", false, "show unread/mention counts after fetching")
 	cmd.Flags().BoolVar(&opts.noMarkdown, "no-markdown", false, "disable markdown rendering")
 	cmd.Flags().BoolVar(&opts.links, "links", false, "extract and list URLs from message bodies")
+	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "output only post IDs, one per line")
+	cmd.Flags().BoolVar(&noStdin, "no-stdin", false, "read channel ref from positional arg even when piped")
 	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
+}
+
+func runReadStdin(outputMode *string, opts readOpts, cmd *cobra.Command, quiet bool) error {
+	targets, serr := readStdinTargets()
+	if serr != nil {
+		return serr
+	}
+	if len(targets) == 0 {
+		return fmt.Errorf("no targets on stdin")
+	}
+	app, aerr := requireSession(*outputMode)
+	if aerr != nil {
+		return aerr
+	}
+	app.quiet = quiet
+	if !cmd.Flags().Changed("full") {
+		opts.full = app.full
+	}
+	success, failed := 0, 0
+	for _, ref := range targets {
+		if perr := runRead(app, ref, opts, cmd.OutOrStdout()); perr != nil {
+			fmt.Fprintf(os.Stderr, "mmrun: read %s: %v\n", ref, perr)
+			failed++
+		} else {
+			success++
+		}
+	}
+	if success == 0 {
+		return fmt.Errorf("all %d targets failed", len(targets))
+	}
+	if failed > 0 {
+		return ErrPartialSuccess
+	}
+	return nil
 }
 
 // parseSince interprets a --since value as either a Go duration relative to now
@@ -142,6 +186,9 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	}
 
 	res := renderMessages(ctx, app, title, posts, permalinkTeam, opts.full, columns, true, opts.style)
+	if app.quiet {
+		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
+	}
 	aerr := app.renderOpts(w, res, opts.format, opts.style, opts.timeFormat, !opts.noMarkdown)
 	if app.autoMarkRead && markCh != nil {
 		_ = app.api.ViewChannel(ctx, app.userID, markCh.Id)
