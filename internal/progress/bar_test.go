@@ -64,3 +64,19 @@ func TestBar_NarrowTerminal(t *testing.T) {
 		t.Errorf("missing percentage in %q", out)
 	}
 }
+
+func TestReader_Progress(t *testing.T) {
+	var buf bytes.Buffer
+	b := NewBar(&buf, 100)
+	b.width = 80
+	r := NewReader(strings.NewReader(strings.Repeat("x", 100)), b)
+	data := make([]byte, 50)
+	n, _ := r.Read(data)
+	if n != 50 {
+		t.Fatalf("read %d, want 50", n)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "50%") {
+		t.Errorf("after reading 50 of 100, should show 50%%, got %q", out)
+	}
+}
