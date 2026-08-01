@@ -98,7 +98,7 @@ func runFileDownload(app *appContext, id, dir string, progressForce, noProgressF
 	for _, fi := range infos {
 		totalSize += fi.Size
 	}
-	isTTY := output.IsTTY(os.Stdout)
+	isTTY := output.IsTTY(os.Stderr)
 	if shouldShowBar(isTTY, totalSize, progressForce, noProgressForce, app.outputMode, app.quiet, app.mustLogin) {
 		bar := progress.NewBar(os.Stderr, totalSize)
 		bar.SetLabel("downloading")
@@ -167,7 +167,7 @@ func runFileUpload(app *appContext, channelRef string, paths []string, message, 
 		}
 		totalSize += fi.Size()
 	}
-	isTTY := output.IsTTY(os.Stdout)
+	isTTY := output.IsTTY(os.Stderr)
 	if shouldShowBar(isTTY, totalSize, progressForce, noProgressForce, app.outputMode, app.quiet, app.mustLogin) {
 		bar := progress.NewBar(os.Stderr, totalSize*2)
 		defer bar.Done()
