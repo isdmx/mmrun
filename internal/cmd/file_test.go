@@ -17,7 +17,7 @@ func TestFileDownload_WritesToDir(t *testing.T) {
 		},
 		outputMode: "ai",
 	}
-	paths, err := runFileDownload(app, "p1", dir)
+	paths, err := runFileDownload(app, "p1", dir, false, false)
 	if err != nil {
 		t.Fatalf("runFileDownload: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestFileDownload_ByFileID(t *testing.T) {
 		},
 		outputMode: "ai",
 	}
-	paths, err := runFileDownload(app, "f9", dir)
+	paths, err := runFileDownload(app, "f9", dir, false, false)
 	if err != nil {
 		t.Fatalf("runFileDownload by file id: %v", err)
 	}

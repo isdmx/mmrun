@@ -35,7 +35,7 @@ func TestGetMe(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewWithToken(srv.URL, "tok")
+	c := NewWithToken(srv.URL, "tok", nil)
 	u, err := c.Me(context.Background())
 	if err != nil {
 		t.Fatalf("Me: %v", err)
@@ -58,7 +58,7 @@ func TestResolveChannel_ByTeamAndName(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewWithToken(srv.URL, "tok")
+	c := NewWithToken(srv.URL, "tok", nil)
 	ch, err := c.ResolveChannel(context.Background(), "eng/general", "", "self")
 	if err != nil {
 		t.Fatalf("ResolveChannel: %v", err)
@@ -81,7 +81,7 @@ func TestResolveChannel_DirectMessage(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewWithToken(srv.URL, "tok")
+	c := NewWithToken(srv.URL, "tok", nil)
 	ch, err := c.ResolveChannel(context.Background(), "@bob", "", "u1")
 	if err != nil {
 		t.Fatalf("ResolveChannel DM: %v", err)
@@ -103,7 +103,7 @@ func TestResolveChannel_ByEmail(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	c := NewWithToken(srv.URL, "tok")
+	c := NewWithToken(srv.URL, "tok", nil)
 	ch, err := c.ResolveChannel(context.Background(), "alice@example.com", "", "u1")
 	if err != nil {
 		t.Fatalf("email resolve: %v", err)
@@ -125,7 +125,7 @@ func TestResolveChannel_TildeChannel(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	c := NewWithToken(srv.URL, "tok")
+	c := NewWithToken(srv.URL, "tok", nil)
 	ch, err := c.ResolveChannel(context.Background(), "~general", "", "u1")
 	if err != nil {
 		t.Fatalf("tilde resolve: %v", err)
@@ -150,7 +150,7 @@ func TestResolveChannel_IDFallbackToUser(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	c := NewWithToken(srv.URL, "tok")
+	c := NewWithToken(srv.URL, "tok", nil)
 	ch, err := c.ResolveChannel(context.Background(), "ch266charidXXXXXXXXXXXXXXX", "", "u1")
 	if err != nil {
 		t.Fatalf("id fallback: %v", err)
@@ -177,7 +177,7 @@ func TestResolveChannel_BareWordFallback(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	c := NewWithToken(srv.URL, "tok")
+	c := NewWithToken(srv.URL, "tok", nil)
 	ch, err := c.ResolveChannel(context.Background(), "nope", "eng", "u1")
 	if err != nil {
 		t.Fatalf("bare word fallback: %v", err)
