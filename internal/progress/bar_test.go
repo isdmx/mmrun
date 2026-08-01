@@ -2,6 +2,10 @@ package progress
 
 import (
 	"bytes"
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -62,6 +66,33 @@ func TestBar_NarrowTerminal(t *testing.T) {
 	}
 	if !strings.Contains(out, "50%") {
 		t.Errorf("missing percentage in %q", out)
+	}
+}
+
+func TestTransport_ByteCounting(t *testing.T) {
+	var buf bytes.Buffer
+	b := NewBar(&buf, 200) // 100 upload + 100 download
+	b.width = 80
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.ReadAll(r.Body)
+		w.Header().Set("Content-Length", "100")
+		w.Write(bytes.Repeat([]byte("x"), 100))
+	}))
+	defer server.Close()
+
+	tr := NewTransport(http.DefaultTransport, b)
+	client := &http.Client{Transport: tr}
+
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL, strings.NewReader(strings.Repeat("x", 100)))
+	req.ContentLength = 100
+	resp, _ := client.Do(req)
+	io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	out := buf.String()
+	if !strings.Contains(out, "100%") {
+		t.Errorf("should show 100%% after full transfer, got %q", out)
 	}
 }
 
