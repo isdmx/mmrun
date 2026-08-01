@@ -5,9 +5,12 @@ package client
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
+
+	"github.com/isdmx/mmrun/internal/progress"
 )
 
 // API is the Mattermost boundary used by commands. It is an interface so
@@ -70,10 +73,18 @@ type Client struct {
 }
 
 // NewWithToken builds a Client authenticated by an existing token.
-func NewWithToken(serverURL, token string) *Client {
+func NewWithToken(serverURL, token string, bar *progress.Bar) *Client {
 	mm := model.NewAPIv4Client(serverURL)
 	mm.SetToken(token)
-	return &Client{mm: mm}
+	c := &Client{mm: mm}
+	if bar != nil {
+		base := c.mm.HTTPClient.Transport
+		if base == nil {
+			base = http.DefaultTransport
+		}
+		c.mm.HTTPClient.Transport = progress.NewTransport(base, bar)
+	}
+	return c
 }
 
 // New builds an unauthenticated Client (for the login flow).

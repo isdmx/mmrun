@@ -136,7 +136,7 @@ func newLogoutCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			c := client.NewWithToken(sess.ServerURL, sess.Token)
+			c := client.NewWithToken(sess.ServerURL, sess.Token, nil)
 			if lerr := c.Logout(context.Background()); lerr != nil {
 				fmt.Fprintf(os.Stderr, "warning: server-side logout failed: %v\n", lerr)
 			}
@@ -154,7 +154,7 @@ func newAuthStatusCmd(outputMode *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			c := client.NewWithToken(sess.ServerURL, sess.Token)
+			c := client.NewWithToken(sess.ServerURL, sess.Token, nil)
 			username := ""
 			if u, uerr := c.Me(context.Background()); uerr == nil && u != nil {
 				username = u.Username

@@ -55,7 +55,7 @@ func requireSession(outputMode string) (*appContext, error) {
 
 // initFromEnvAuth builds an appContext from environment variable credentials.
 func initFromEnvAuth(d envAuthData, outputMode string) (*appContext, error) {
-	cl := client.NewWithToken(d.url, d.token)
+	cl := client.NewWithToken(d.url, d.token, nil)
 	u, uerr := cl.Me(context.Background())
 	if uerr != nil {
 		return nil, fmt.Errorf("env auth token validation failed: %w", uerr)
@@ -111,7 +111,7 @@ func initFromSession(outputMode string) (*appContext, error) {
 	if (outputMode == "" || outputMode == "auto") && cfg.OutputMode != "" {
 		outputMode = cfg.OutputMode
 	}
-	cl := client.NewWithToken(sess.ServerURL, sess.Token)
+	cl := client.NewWithToken(sess.ServerURL, sess.Token, nil)
 
 	username := sess.Username
 	if username == "" {
