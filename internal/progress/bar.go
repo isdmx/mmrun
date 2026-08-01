@@ -18,17 +18,20 @@ type Bar struct {
 	label     string
 	startTime time.Time
 	width     int // terminal width, 0 if piped/unknown
+	fd        int // file descriptor for live width detection, -1 if not a file
 }
 
 // NewBar creates a progress bar writing to w. total is the expected byte count.
 func NewBar(w io.Writer, total int64) *Bar {
+	fd := -1
 	width := 80
 	if f, ok := w.(interface{ Fd() uintptr }); ok {
-		if tw, _, err := term.GetSize(int(f.Fd())); err == nil {
+		fd = int(f.Fd())
+		if tw, _, err := term.GetSize(fd); err == nil {
 			width = tw
 		}
 	}
-	return &Bar{out: w, total: total, startTime: time.Now(), width: width}
+	return &Bar{out: w, total: total, startTime: time.Now(), width: width, fd: fd}
 }
 
 // SetLabel changes the label shown before the bar (e.g. "reading", "uploading").
@@ -51,6 +54,12 @@ func (b *Bar) Done() {
 }
 
 func (b *Bar) render() {
+	width := b.width
+	if b.fd >= 0 {
+		if tw, _, err := term.GetSize(b.fd); err == nil && tw > 0 {
+			width = tw
+		}
+	}
 	pct := int64(0)
 	if b.total > 0 {
 		pct = b.current * 100 / b.total
@@ -68,11 +77,11 @@ func (b *Bar) render() {
 	}
 
 	label := b.label
-	if b.width < 40 {
+	if width < 75 {
 		_, _ = fmt.Fprintf(b.out, "\r  %s... %d%%  %s / %s  %s/s",
 			label, pct, humanSize(b.current), humanSize(b.total), humanSizeF(speed))
 	} else {
-		barWidth := b.width - 40
+		barWidth := width - 65
 		if barWidth < 10 {
 			barWidth = 10
 		}
