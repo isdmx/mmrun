@@ -76,11 +76,14 @@ func (b *Bar) render() {
 		if barWidth < 10 {
 			barWidth = 10
 		}
-		filled := int(int64(barWidth) * b.current / b.total)
-		if filled > barWidth {
-			filled = barWidth
+		var filled int
+		if b.total > 0 {
+			filled = int(int64(barWidth-1) * b.current / b.total)
+			if filled >= barWidth-1 {
+				filled = barWidth - 1
+			}
 		}
-		bar := "[" + strings.Repeat("=", filled) + ">" + strings.Repeat(" ", barWidth-filled) + "]"
+		bar := "[" + strings.Repeat("=", filled) + ">" + strings.Repeat(" ", barWidth-1-filled) + "]"
 		_, _ = fmt.Fprintf(b.out, "\r  %-10s %s %3d%%  %s / %s  %s/s  ETA %s",
 			label, bar, pct, humanSize(b.current), humanSize(b.total), humanSizeF(speed), eta)
 	}
