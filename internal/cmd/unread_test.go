@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
@@ -12,10 +14,10 @@ func TestUnread(t *testing.T) {
 	ch1 := &model.Channel{Id: "c1", Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen}
 	ch2 := &model.Channel{Id: "c2", Name: "random", DisplayName: "Random", Type: model.ChannelTypeOpen}
 	app := &appContext{
-		api: &fakeAPI{
-			teams:         []*model.Team{{Id: "t1", Name: "eng"}},
-			channels:      []*model.Channel{ch1, ch2},
-			channelUnread: &model.ChannelUnread{MsgCount: 5, MentionCount: 2},
+		api: &client.FakeAPI{
+			Teams_:         []*model.Team{{Id: "t1", Name: "eng"}},
+			Channels_:      []*model.Channel{ch1, ch2},
+			ChannelUnread_: &model.ChannelUnread{MsgCount: 5, MentionCount: 2},
 		},
 		outputMode: "ai",
 		userID:     "u1",

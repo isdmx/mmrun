@@ -7,14 +7,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
 func TestPost_CreatesAndReportsID(t *testing.T) {
 	app := &appContext{
-		api: &fakeAPI{
-			resolved: &model.Channel{Id: "c1"},
-			created:  &model.Post{Id: "p1", Message: "hello"},
+		api: &client.FakeAPI{
+			Resolved_: &model.Channel{Id: "c1"},
+			Created_:  &model.Post{Id: "p1", Message: "hello"},
 		},
 		outputMode: "ai",
 	}
@@ -39,10 +41,10 @@ func TestPost_AttachesMultipleFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fake := &fakeAPI{
-		resolved:   &model.Channel{Id: "c1"},
-		created:    &model.Post{Id: "p1"},
-		uploadResp: &model.FileUploadResponse{FileInfos: []*model.FileInfo{{Id: "f-uploaded"}}},
+	fake := &client.FakeAPI{
+		Resolved_:   &model.Channel{Id: "c1"},
+		Created_:    &model.Post{Id: "p1"},
+		UploadResp_: &model.FileUploadResponse{FileInfos: []*model.FileInfo{{Id: "f-uploaded"}}},
 	}
 	app := &appContext{api: fake, outputMode: "ai"}
 
@@ -50,17 +52,17 @@ func TestPost_AttachesMultipleFiles(t *testing.T) {
 	if err := runPost(app, "eng/general", "with files", postOpts{files: []string{f1, f2}}, &buf); err != nil {
 		t.Fatalf("runPost: %v", err)
 	}
-	if fake.lastPost == nil {
+	if fake.LastPost_ == nil {
 		t.Fatal("no post was created")
 	}
-	if len(fake.lastPost.FileIds) != 2 {
+	if len(fake.LastPost_.FileIds) != 2 {
 		t.Errorf("expected 2 attached file IDs (one per uploaded file), got %d: %v",
-			len(fake.lastPost.FileIds), fake.lastPost.FileIds)
+			len(fake.LastPost_.FileIds), fake.LastPost_.FileIds)
 	}
 }
 
 func TestPost_Stdin(t *testing.T) {
-	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, created: &model.Post{Id: "p1"}}
+	fake := &client.FakeAPI{Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, Created_: &model.Post{Id: "p1"}}
 	app := &appContext{api: fake, outputMode: "ai"}
 	old := os.Stdin
 	r, w, _ := os.Pipe()
@@ -71,70 +73,70 @@ func TestPost_Stdin(t *testing.T) {
 	if err := runPost(app, "eng/general", "-", postOpts{}, &buf); err != nil {
 		t.Fatalf("runPost stdin: %v", err)
 	}
-	if fake.lastPost == nil || fake.lastPost.Message != "from pipe" {
-		t.Errorf("stdin message not posted: %+v", fake.lastPost)
+	if fake.LastPost_ == nil || fake.LastPost_.Message != "from pipe" {
+		t.Errorf("stdin message not posted: %+v", fake.LastPost_)
 	}
 }
 
 func TestPost_Editor(t *testing.T) {
 	t.Setenv("EDITOR", "cat")
-	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, created: &model.Post{Id: "p1"}}
+	fake := &client.FakeAPI{Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, Created_: &model.Post{Id: "p1"}}
 	app := &appContext{api: fake, outputMode: "ai"}
 	var buf bytes.Buffer
 	if err := runPost(app, "eng/general", "prefill", postOpts{editor: true}, &buf); err != nil {
 		t.Fatalf("runPost editor: %v", err)
 	}
-	if fake.lastPost == nil || !strings.Contains(fake.lastPost.Message, "prefill") {
-		t.Errorf("editor message not posted: %+v", fake.lastPost)
+	if fake.LastPost_ == nil || !strings.Contains(fake.LastPost_.Message, "prefill") {
+		t.Errorf("editor message not posted: %+v", fake.LastPost_)
 	}
 }
 
 func TestPost_ImplicitEditor(t *testing.T) {
 	// Two-arg call: explicit message is used directly.
 	t.Run("explicit message", func(t *testing.T) {
-		fake := &fakeAPI{
-			resolved: &model.Channel{Id: "c1"},
-			created:  &model.Post{Id: "p1"},
+		fake := &client.FakeAPI{
+			Resolved_: &model.Channel{Id: "c1"},
+			Created_:  &model.Post{Id: "p1"},
 		}
 		app := &appContext{api: fake, outputMode: "ai"}
 		var buf bytes.Buffer
 		if err := runPost(app, "eng/general", "hello world", postOpts{}, &buf); err != nil {
 			t.Fatalf("runPost: %v", err)
 		}
-		if fake.lastPost == nil || fake.lastPost.Message != "hello world" {
-			t.Errorf("expected 'hello world', got %+v", fake.lastPost)
+		if fake.LastPost_ == nil || fake.LastPost_.Message != "hello world" {
+			t.Errorf("expected 'hello world', got %+v", fake.LastPost_)
 		}
 	})
 
 	// One-arg call without TTY: posts empty message (no editor spawn).
 	t.Run("no tty no message", func(t *testing.T) {
-		fake := &fakeAPI{
-			resolved: &model.Channel{Id: "c1"},
-			created:  &model.Post{Id: "p1"},
+		fake := &client.FakeAPI{
+			Resolved_: &model.Channel{Id: "c1"},
+			Created_:  &model.Post{Id: "p1"},
 		}
 		app := &appContext{api: fake, outputMode: "ai"}
 		var buf bytes.Buffer
 		if err := runPost(app, "eng/general", "", postOpts{}, &buf); err != nil {
 			t.Fatalf("runPost: %v", err)
 		}
-		if fake.lastPost == nil {
+		if fake.LastPost_ == nil {
 			t.Fatal("expected a post")
 		}
 		// No $EDITOR invoked since stdin is not a TTY.
-		if fake.lastPost.Message != "" {
-			t.Errorf("expected empty message, got %q", fake.lastPost.Message)
+		if fake.LastPost_.Message != "" {
+			t.Errorf("expected empty message, got %q", fake.LastPost_.Message)
 		}
 	})
 }
 
 func TestPost_DryRun(t *testing.T) {
-	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}}
+	fake := &client.FakeAPI{Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}}
 	app := &appContext{api: fake, outputMode: "ai"}
 	var buf bytes.Buffer
 	if err := runPost(app, "eng/general", "hello", postOpts{dryRun: true}, &buf); err != nil {
 		t.Fatalf("runPost dry-run: %v", err)
 	}
-	if fake.lastPost != nil {
+	if fake.LastPost_ != nil {
 		t.Error("dry-run must not create a post")
 	}
 	if !strings.Contains(buf.String(), "hello") {

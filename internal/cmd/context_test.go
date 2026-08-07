@@ -4,11 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
 func TestAppContext_UsesFake(t *testing.T) {
-	fake := &fakeAPI{}
+	fake := &client.FakeAPI{}
 	app := &appContext{api: fake, outputMode: "ai"}
 	got := app.api
 	if got == nil {
@@ -17,8 +19,8 @@ func TestAppContext_UsesFake(t *testing.T) {
 }
 
 func TestAliases(t *testing.T) {
-	fake := &fakeAPI{
-		resolved: &model.Channel{Id: "c2", Name: "incidents", TeamId: "t2"},
+	fake := &client.FakeAPI{
+		Resolved_: &model.Channel{Id: "c2", Name: "incidents", TeamId: "t2"},
 	}
 	app := &appContext{
 		api:     fake,

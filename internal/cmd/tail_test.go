@@ -35,10 +35,10 @@ func TestPostedEventToRow_IgnoresOtherEvents(t *testing.T) {
 
 func TestRunTail_RendersStreamedPost(t *testing.T) {
 	events := make(chan client.WSEvent, 1)
-	f := &fakeAPI{
-		resolved:     &model.Channel{Id: "c1"},
-		streamEvents: events,
-		streamErrs:   make(chan error, 1),
+	f := &client.FakeAPI{
+		Resolved_:     &model.Channel{Id: "c1"},
+		StreamEvents_: events,
+		StreamErrs_:   make(chan error, 1),
 	}
 	app := &appContext{api: f, outputMode: "ai"}
 
@@ -70,7 +70,7 @@ func TestPostUserID(t *testing.T) {
 }
 
 func TestRunTail_SurfacesStreamError(t *testing.T) {
-	f := &fakeAPI{resolved: &model.Channel{Id: "c1"}, streamErr: context.DeadlineExceeded}
+	f := &client.FakeAPI{Resolved_: &model.Channel{Id: "c1"}, StreamErr_: context.DeadlineExceeded}
 	app := &appContext{api: f, outputMode: "ai"}
 	var buf bytes.Buffer
 	if err := runTail(context.Background(), app, "eng/general", "", false, "", &buf); err == nil {

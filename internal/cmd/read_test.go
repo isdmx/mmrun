@@ -19,7 +19,7 @@ func TestRead_RendersMessagesInOrder(t *testing.T) {
 		},
 	}
 	app := &appContext{
-		api:        &fakeAPI{resolved: &model.Channel{Id: "c1"}, posts: pl},
+		api:        &client.FakeAPI{Resolved_: &model.Channel{Id: "c1"}, Posts_: pl},
 		outputMode: "ai",
 		previewLen: 140,
 	}
@@ -34,16 +34,16 @@ func TestRead_RendersMessagesInOrder(t *testing.T) {
 }
 
 func TestRead_MarkRead(t *testing.T) {
-	fake := &fakeAPI{
-		resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen},
-		posts:    &model.PostList{},
+	fake := &client.FakeAPI{
+		Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen},
+		Posts_:    &model.PostList{},
 	}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
 	if err := runRead(app, "eng/general", readOpts{markRead: true}, &buf); err != nil {
 		t.Fatalf("runRead with mark-read: %v", err)
 	}
-	if fake.viewedChannel == "" {
+	if fake.ViewedChannel_ == "" {
 		t.Error("ViewChannel should have been called")
 	}
 }
@@ -70,7 +70,7 @@ func TestRead_ColumnsFilter(t *testing.T) {
 		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "hello", UserId: "u2", ChannelId: "c1", CreateAt: 1000}},
 	}
 	app := &appContext{
-		api:        &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}}},
+		api:        &client.FakeAPI{Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, Posts_: pl, Users_: []*model.User{{Id: "u2", Username: "bob"}}},
 		outputMode: "ai",
 		previewLen: 140,
 	}
@@ -89,7 +89,7 @@ func TestRead_ColumnsFilter(t *testing.T) {
 
 func TestRead_BadColumn(t *testing.T) {
 	app := &appContext{
-		api:        &fakeAPI{resolved: &model.Channel{Id: "c1"}, posts: &model.PostList{}},
+		api:        &client.FakeAPI{Resolved_: &model.Channel{Id: "c1"}, Posts_: &model.PostList{}},
 		outputMode: "ai",
 		previewLen: 140,
 	}
@@ -105,7 +105,7 @@ func TestRead_Thread(t *testing.T) {
 		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "thread root", CreateAt: 10}},
 	}
 	app := &appContext{
-		api:        &fakeAPI{thread: pl},
+		api:        &client.FakeAPI{Thread_: pl},
 		outputMode: "ai",
 		previewLen: 140,
 	}
@@ -123,13 +123,13 @@ func TestRead_TailFlagDoesNotBreakNormalRead(t *testing.T) {
 		Order: []string{"p1"},
 		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "root", UserId: "u2", ChannelId: "c1", CreateAt: 1000}},
 	}
-	fake := &fakeAPI{
-		resolved:     &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen},
-		posts:        pl,
-		users:        []*model.User{{Id: "u2", Username: "bob"}},
-		streamEvents: make(chan client.WSEvent),
+	fake := &client.FakeAPI{
+		Resolved_:     &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen},
+		Posts_:        pl,
+		Users_:        []*model.User{{Id: "u2", Username: "bob"}},
+		StreamEvents_: make(chan client.WSEvent),
 	}
-	close(fake.streamEvents)
+	close(fake.StreamEvents_)
 	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
 	var buf bytes.Buffer
 	if err := runRead(app, "eng/general", readOpts{tail: true, limit: 1}, &buf); err != nil {
@@ -148,7 +148,7 @@ func TestRead_ThreadsOnly(t *testing.T) {
 			"p2": {Id: "p2", Message: "reply", UserId: "u3", ChannelId: "c1", RootId: "p1", CreateAt: 2000},
 		},
 	}
-	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}, {Id: "u3", Username: "charlie"}}}
+	fake := &client.FakeAPI{Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, Posts_: pl, Users_: []*model.User{{Id: "u2", Username: "bob"}, {Id: "u3", Username: "charlie"}}}
 	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
 	var buf bytes.Buffer
 	if err := runRead(app, "eng/general", readOpts{threadsOnly: true}, &buf); err != nil {

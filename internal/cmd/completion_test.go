@@ -4,15 +4,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
 func TestCompleteChannels(t *testing.T) {
-	fake := &fakeAPI{channels: []*model.Channel{
+	fake := &client.FakeAPI{Channels_: []*model.Channel{
 		{Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen},
 		{Name: "random", DisplayName: "Random", Type: model.ChannelTypeOpen},
 		{Name: "u1__u2", Type: model.ChannelTypeDirect},
-	}, me: &model.User{Username: "alice"}}
+	}, Me_: &model.User{Username: "alice"}}
 	app := &appContext{api: fake, userID: "u1"}
 	got := completeChannelCompletions(app)
 	if len(got) == 0 {
@@ -36,7 +38,7 @@ func TestCompleteChannels(t *testing.T) {
 }
 
 func TestCompleteTeams(t *testing.T) {
-	fake := &fakeAPI{teams: []*model.Team{{Name: "eng"}, {Name: "ops"}}}
+	fake := &client.FakeAPI{Teams_: []*model.Team{{Name: "eng"}, {Name: "ops"}}}
 	app := &appContext{api: fake, userID: "u1"}
 	got := completeTeamCompletions(app)
 	if len(got) != 2 || got[0] != "eng" || got[1] != "ops" {
@@ -45,7 +47,7 @@ func TestCompleteTeams(t *testing.T) {
 }
 
 func TestCompletePostIDs(t *testing.T) {
-	fake := &fakeAPI{threads: &model.Threads{Threads: []*model.ThreadResponse{
+	fake := &client.FakeAPI{Threads_: &model.Threads{Threads: []*model.ThreadResponse{
 		{PostId: "p1"},
 		{PostId: "p2"},
 	}}}
@@ -65,7 +67,7 @@ func TestResolveSelfCompletion_UsesUsername(t *testing.T) {
 }
 
 func TestResolveSelfCompletion_FallsBackToGetMe(t *testing.T) {
-	fake := &fakeAPI{me: &model.User{Username: "bob"}}
+	fake := &client.FakeAPI{Me_: &model.User{Username: "bob"}}
 	app := &appContext{api: fake}
 	got := resolveSelfCompletion(context.Background(), app)
 	if got != "@bob" {

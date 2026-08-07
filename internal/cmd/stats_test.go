@@ -5,11 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
 func TestStats(t *testing.T) {
-	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, channelStats: &model.ChannelStats{MemberCount: 47, PinnedPostCount: 3}}
+	fake := &client.FakeAPI{Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, ChannelStats_: &model.ChannelStats{MemberCount: 47, PinnedPostCount: 3}}
 	app := &appContext{api: fake, outputMode: "ai"}
 	var buf bytes.Buffer
 	if err := runStats(app, "general", &buf); err != nil {

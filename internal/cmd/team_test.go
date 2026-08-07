@@ -5,12 +5,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
 func TestTeamList(t *testing.T) {
 	app := &appContext{
-		api:        &fakeAPI{teams: []*model.Team{{Id: "t1", Name: "eng", DisplayName: "Engineering"}}},
+		api:        &client.FakeAPI{Teams_: []*model.Team{{Id: "t1", Name: "eng", DisplayName: "Engineering"}}},
 		outputMode: "ai",
 		userID:     "u1",
 	}

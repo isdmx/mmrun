@@ -5,11 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
 func TestSearch_Limit(t *testing.T) {
-	fake := &fakeAPI{posts: &model.PostList{}, teams: []*model.Team{{Id: "t1", Name: "eng"}}}
+	fake := &client.FakeAPI{Posts_: &model.PostList{}, Teams_: []*model.Team{{Id: "t1", Name: "eng"}}}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
 	if err := runSearch(app, "test", "eng", false, "", "", "", "", 20, 0, "", "", "", "", "", false, true, false, &buf); err != nil {
@@ -18,7 +20,7 @@ func TestSearch_Limit(t *testing.T) {
 }
 
 func TestSearch_SinceModifier(t *testing.T) {
-	fake := &fakeAPI{posts: &model.PostList{}, teams: []*model.Team{{Id: "t1", Name: "eng"}}}
+	fake := &client.FakeAPI{Posts_: &model.PostList{}, Teams_: []*model.Team{{Id: "t1", Name: "eng"}}}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
 	if err := runSearch(app, "test", "eng", false, "", "", "", "", 0, 0, "2026-07-01", "", "", "", "", false, true, false, &buf); err != nil {
@@ -32,7 +34,7 @@ func TestSearch_RendersHits(t *testing.T) {
 		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "deploy failed", UserId: "u2", CreateAt: 5000}},
 	}
 	app := &appContext{
-		api:        &fakeAPI{teams: []*model.Team{{Id: "t1", Name: "eng"}}, posts: pl},
+		api:        &client.FakeAPI{Teams_: []*model.Team{{Id: "t1", Name: "eng"}}, Posts_: pl},
 		outputMode: "ai",
 		userID:     "u1",
 		previewLen: 140,
@@ -47,14 +49,14 @@ func TestSearch_RendersHits(t *testing.T) {
 }
 
 func TestSearch_FromUser(t *testing.T) {
-	fake := &fakeAPI{posts: &model.PostList{}, teams: []*model.Team{{Id: "t1", Name: "eng"}}}
+	fake := &client.FakeAPI{Posts_: &model.PostList{}, Teams_: []*model.Team{{Id: "t1", Name: "eng"}}}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
 	if err := runSearch(app, "test", "eng", false, "", "", "", "", 0, 0, "", "", "bob", "", "", false, true, false, &buf); err != nil {
 		t.Fatalf("runSearch with from: %v", err)
 	}
-	if !strings.Contains(fake.searchTerms, "from:bob") {
-		t.Errorf("query should contain from:bob, got %q", fake.searchTerms)
+	if !strings.Contains(fake.SearchTerms_, "from:bob") {
+		t.Errorf("query should contain from:bob, got %q", fake.SearchTerms_)
 	}
 }
 
@@ -66,9 +68,9 @@ func TestSearch_AllTeams(t *testing.T) {
 			"p2": {Id: "p2", Message: "team two msg", UserId: "u1", CreateAt: 6000},
 		},
 	}
-	fake := &fakeAPI{
-		teams: []*model.Team{{Id: "t1", Name: "eng"}, {Id: "t2", Name: "ops"}},
-		posts: pl,
+	fake := &client.FakeAPI{
+		Teams_: []*model.Team{{Id: "t1", Name: "eng"}, {Id: "t2", Name: "ops"}},
+		Posts_: pl,
 	}
 	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer
@@ -81,7 +83,7 @@ func TestSearch_AllTeams(t *testing.T) {
 	if !strings.Contains(buf.String(), "team two msg") {
 		t.Errorf("missing team two msg:\n%s", buf.String())
 	}
-	if fake.searchCalls != 2 {
-		t.Errorf("expected 2 search calls, got %d", fake.searchCalls)
+	if fake.SearchCalls_ != 2 {
+		t.Errorf("expected 2 search calls, got %d", fake.SearchCalls_)
 	}
 }

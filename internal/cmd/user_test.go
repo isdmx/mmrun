@@ -5,13 +5,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
 func TestUserSearch(t *testing.T) {
 	app := &appContext{
-		api: &fakeAPI{
-			users: []*model.User{{Id: "u2", Username: "bob", FirstName: "Bob", LastName: "Jones", Email: "b@x.com"}},
+		api: &client.FakeAPI{
+			Users_: []*model.User{{Id: "u2", Username: "bob", FirstName: "Bob", LastName: "Jones", Email: "b@x.com"}},
 		},
 		outputMode: "ai",
 	}
