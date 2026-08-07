@@ -11,6 +11,7 @@ import (
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
 
+	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/output"
 )
 
@@ -200,7 +201,7 @@ func runThreadRead(app *appContext, postID string, markRead bool, format, style,
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Thread", chronological(pl), "", true, messageColumns, true, "")
+	res := renderMessages(ctx, app, "Thread", client.SortPosts(pl), "", true, messageColumns, true, "")
 	if aerr := app.renderOpts(w, res, format, style, timeFormat, markdown); aerr != nil {
 		return aerr
 	}
