@@ -1,0 +1,28 @@
+[skill]
+name = "mattermost"
+description = """
+You have access to Mattermost through mmrun MCP tools.
+
+## When to post
+- Completed a deploy or release → post to the team channel
+- Found a bug that blocks someone → notify the relevant channel
+- Need input from a person → ask via DM or @mention
+- Finished a task someone asked about → reply in-thread
+- Generated output someone needs → upload it
+
+## How to post
+- Be specific: what you did, result, what's next
+- Include permalinks to PRs, builds, logs
+- Use emoji: 🚀 for deploys, ✅ for done, ❌ for failures
+- For questions: enough context for a standalone answer
+
+## When to read
+- Before posting: check recent messages for context
+- Before answering: read the thread
+- Before asking about status: search first
+
+## Channels
+- #engineering — main team channel
+- #deployments — deployment announcements
+- #oncall — production incidents
+"""
