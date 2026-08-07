@@ -75,7 +75,8 @@ func New(cfg ServerConfig) (*Server, error) {
 		server.WithPromptCapabilities(true),
 	)
 
-	return &Server{
+	// 6. Build and register tools.
+	s := &Server{
 		api:       api,
 		srv:       srv,
 		userID:    me.Id,
@@ -83,7 +84,9 @@ func New(cfg ServerConfig) (*Server, error) {
 		serverURL: serverURL,
 		team:      team,
 		tier:      tier,
-	}, nil
+	}
+	s.registerTools()
+	return s, nil
 }
 
 // Run starts the MCP server on stdio, blocking until the context is cancelled.
@@ -92,5 +95,28 @@ func (s *Server) Run(ctx context.Context) error {
 	return server.ServeStdio(s.srv)
 }
 
-// Ensure we import mcp package for future tool registration.
-var _ = mcp.CallToolRequest{}
+// registerTools registers every tool whose SafetyTier is at or below the
+// server's configured tier.
+func (s *Server) registerTools() {
+	register := func(name, desc string, handler func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error)) {
+		if s.tier >= toolTiers[name] {
+			s.srv.AddTool(mcp.NewTool(name, mcp.WithDescription(desc)), handler)
+		}
+	}
+	register("get_inbox", "Get unread messages and followed threads across all teams", s.getInbox)
+	register("read_channel", "Read messages from a channel", s.readChannel)
+	register("get_thread", "Read a full thread by root post ID", s.getThread)
+	register("search_messages", "Search messages across teams", s.searchMessages)
+	register("list_channels", "List channels in a team", s.listChannels)
+	register("list_teams", "List teams the user belongs to", s.listTeams)
+	register("search_users", "Search users by username or name", s.searchUsers)
+	register("get_me", "Get the authenticated user's profile", s.getMe)
+	register("get_user", "Get a user's profile by username", s.getUser)
+	register("get_user_status", "Get a user's online status", s.getUserStatus)
+	register("get_pinned_posts", "Get pinned posts in a channel", s.getPinnedPosts)
+	register("get_flagged_posts", "Get posts the user has flagged", s.getFlaggedPosts)
+	register("get_channel_stats", "Get member and pinned count for a channel", s.getChannelStats)
+	register("get_unread", "Get unread message and mention count for a channel", s.getUnread)
+	register("flag_post", "Flag a post for follow-up", s.flagPost)
+	register("unflag_post", "Remove flag from a post", s.unflagPost)
+}
