@@ -9,3 +9,5 @@ mmrun
 /dist/
 coverage.out
 /demo/
+
+/.worktrees/
