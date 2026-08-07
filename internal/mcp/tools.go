@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -632,5 +634,133 @@ func (s *Server) unflagPost(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultError(friendlyErr("unflagging post", err)), nil
 	}
 
+	return mcp.NewToolResultText("ok"), nil
+}
+
+// --- write-tier handlers ----------------------------------------------------
+
+// postMessage creates a new post in a channel.
+func (s *Server) postMessage(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	channel, _ := req.RequireString("channel")
+	message, _ := req.RequireString("message")
+	ch, err := s.api.ResolveChannel(ctx, channel, s.team, s.userID)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("resolve channel", err)), nil
+	}
+	post := &model.Post{ChannelId: ch.Id, Message: message}
+	created, err := s.api.CreatePost(ctx, post)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("create post", err)), nil
+	}
+	return mcp.NewToolResultText(created.Id), nil
+}
+
+// replyToThread creates a reply post in a thread.
+func (s *Server) replyToThread(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	postID, _ := req.RequireString("post_id")
+	message, _ := req.RequireString("message")
+	thread, err := s.api.PostThread(ctx, postID)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("fetch thread", err)), nil
+	}
+	root, ok := thread.Posts[postID]
+	if !ok || root == nil {
+		return mcp.NewToolResultError("thread root post not found"), nil
+	}
+	post := &model.Post{ChannelId: root.ChannelId, Message: message, RootId: postID}
+	created, err := s.api.CreatePost(ctx, post)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("create reply", err)), nil
+	}
+	return mcp.NewToolResultText(created.Id), nil
+}
+
+// addReaction adds an emoji reaction to a post.
+func (s *Server) addReaction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	postID, _ := req.RequireString("post_id")
+	emoji, _ := req.RequireString("emoji")
+	emoji = strings.Trim(emoji, ":")
+	if err := s.api.SaveReaction(ctx, postID, s.userID, emoji); err != nil {
+		return mcp.NewToolResultError(friendlyErr("add reaction", err)), nil
+	}
+	return mcp.NewToolResultText("ok"), nil
+}
+
+// removeReaction removes the user's emoji reaction from a post.
+func (s *Server) removeReaction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	postID, _ := req.RequireString("post_id")
+	emoji, _ := req.RequireString("emoji")
+	emoji = strings.Trim(emoji, ":")
+	if err := s.api.DeleteReaction(ctx, postID, s.userID, emoji); err != nil {
+		return mcp.NewToolResultError(friendlyErr("remove reaction", err)), nil
+	}
+	return mcp.NewToolResultText("ok"), nil
+}
+
+// editPost patches a post's message text.
+func (s *Server) editPost(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	postID, _ := req.RequireString("post_id")
+	message, _ := req.RequireString("message")
+	if _, err := s.api.PatchPost(ctx, postID, message); err != nil {
+		return mcp.NewToolResultError(friendlyErr("edit post", err)), nil
+	}
+	return mcp.NewToolResultText("ok"), nil
+}
+
+// uploadFile reads a file from disk and uploads it to a channel.
+func (s *Server) uploadFile(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	channel, _ := req.RequireString("channel")
+	filePath, _ := req.RequireString("file_path")
+	ch, err := s.api.ResolveChannel(ctx, channel, s.team, s.userID)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("resolve channel", err)), nil
+	}
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("read file", err)), nil
+	}
+	filename := filepath.Base(filePath)
+	resp, err := s.api.UploadFile(ctx, data, ch.Id, filename)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("upload file", err)), nil
+	}
+	var ids []string
+	for _, fi := range resp.FileInfos {
+		ids = append(ids, fi.Id)
+	}
+	return mcp.NewToolResultText(strings.Join(ids, "\n")), nil
+}
+
+// markChannelRead marks a channel as read for the current user.
+func (s *Server) markChannelRead(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	channel, _ := req.RequireString("channel")
+	ch, err := s.api.ResolveChannel(ctx, channel, s.team, s.userID)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("resolve channel", err)), nil
+	}
+	if err := s.api.ViewChannel(ctx, s.userID, ch.Id); err != nil {
+		return mcp.NewToolResultError(friendlyErr("mark channel read", err)), nil
+	}
+	return mcp.NewToolResultText("ok"), nil
+}
+
+// markThreadRead marks a thread as read for the current user.
+func (s *Server) markThreadRead(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	threadID, _ := req.RequireString("thread_id")
+	thread, err := s.api.PostThread(ctx, threadID)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("fetch thread", err)), nil
+	}
+	root, ok := thread.Posts[threadID]
+	if !ok || root == nil {
+		return mcp.NewToolResultError("thread root post not found"), nil
+	}
+	ch, err := s.api.Channel(ctx, root.ChannelId)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("resolve channel", err)), nil
+	}
+	if err := s.api.UpdateThreadRead(ctx, s.userID, ch.TeamId, threadID); err != nil {
+		return mcp.NewToolResultError(friendlyErr("mark thread read", err)), nil
+	}
 	return mcp.NewToolResultText("ok"), nil
 }

@@ -119,4 +119,12 @@ func (s *Server) registerTools() {
 	register("get_unread", "Get unread message and mention count for a channel", s.getUnread)
 	register("flag_post", "Flag a post for follow-up", s.flagPost)
 	register("unflag_post", "Remove flag from a post", s.unflagPost)
+	register("post_message", "Post a new message to a channel", s.postMessage)
+	register("reply_to_thread", "Reply to a post in its thread", s.replyToThread)
+	register("add_reaction", "Add an emoji reaction to a post", s.addReaction)
+	register("remove_reaction", "Remove your emoji reaction from a post", s.removeReaction)
+	register("edit_post", "Edit a post's message text", s.editPost)
+	register("upload_file", "Upload a file to a channel", s.uploadFile)
+	register("mark_channel_read", "Mark a channel as read", s.markChannelRead)
+	register("mark_thread_read", "Mark a thread as read", s.markThreadRead)
 }
