@@ -798,3 +798,41 @@ func (s *Server) markThreadRead(ctx context.Context, req mcp.CallToolRequest) (*
 	}
 	return mcp.NewToolResultText("ok"), nil
 }
+
+// --- admin-tier handlers ----------------------------------------------------
+
+// deletePost deletes a post by ID.
+func (s *Server) deletePost(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	postID, _ := req.RequireString("post_id")
+	if postID == "" {
+		return mcp.NewToolResultError("post_id is required"), nil
+	}
+	if err := s.api.DeletePost(ctx, postID); err != nil {
+		return mcp.NewToolResultError(friendlyErr("delete post", err)), nil
+	}
+	return mcp.NewToolResultText("ok"), nil
+}
+
+// pinPost pins a post to the channel.
+func (s *Server) pinPost(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	postID, _ := req.RequireString("post_id")
+	if postID == "" {
+		return mcp.NewToolResultError("post_id is required"), nil
+	}
+	if err := s.api.PinPost(ctx, postID); err != nil {
+		return mcp.NewToolResultError(friendlyErr("pin post", err)), nil
+	}
+	return mcp.NewToolResultText("ok"), nil
+}
+
+// unpinPost unpins a post from the channel.
+func (s *Server) unpinPost(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	postID, _ := req.RequireString("post_id")
+	if postID == "" {
+		return mcp.NewToolResultError("post_id is required"), nil
+	}
+	if err := s.api.UnpinPost(ctx, postID); err != nil {
+		return mcp.NewToolResultError(friendlyErr("unpin post", err)), nil
+	}
+	return mcp.NewToolResultText("ok"), nil
+}

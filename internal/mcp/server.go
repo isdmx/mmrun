@@ -127,4 +127,7 @@ func (s *Server) registerTools() {
 	register("upload_file", "Upload a file to a channel", s.uploadFile)
 	register("mark_channel_read", "Mark a channel as read", s.markChannelRead)
 	register("mark_thread_read", "Mark a thread as read", s.markThreadRead)
+	register("delete_post", "Delete a post", s.deletePost)
+	register("pin_post", "Pin a post to the channel", s.pinPost)
+	register("unpin_post", "Unpin a post from the channel", s.unpinPost)
 }
