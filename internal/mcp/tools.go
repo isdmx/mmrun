@@ -643,6 +643,12 @@ func (s *Server) unflagPost(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 func (s *Server) postMessage(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	channel, _ := req.RequireString("channel")
 	message, _ := req.RequireString("message")
+	if channel == "" {
+		return mcp.NewToolResultError("channel is required"), nil
+	}
+	if message == "" {
+		return mcp.NewToolResultError("message is required"), nil
+	}
 	ch, err := s.api.ResolveChannel(ctx, channel, s.team, s.userID)
 	if err != nil {
 		return mcp.NewToolResultError(friendlyErr("resolve channel", err)), nil
@@ -659,6 +665,12 @@ func (s *Server) postMessage(ctx context.Context, req mcp.CallToolRequest) (*mcp
 func (s *Server) replyToThread(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	postID, _ := req.RequireString("post_id")
 	message, _ := req.RequireString("message")
+	if postID == "" {
+		return mcp.NewToolResultError("post_id is required"), nil
+	}
+	if message == "" {
+		return mcp.NewToolResultError("message is required"), nil
+	}
 	thread, err := s.api.PostThread(ctx, postID)
 	if err != nil {
 		return mcp.NewToolResultError(friendlyErr("fetch thread", err)), nil
@@ -667,7 +679,11 @@ func (s *Server) replyToThread(ctx context.Context, req mcp.CallToolRequest) (*m
 	if !ok || root == nil {
 		return mcp.NewToolResultError("thread root post not found"), nil
 	}
-	post := &model.Post{ChannelId: root.ChannelId, Message: message, RootId: postID}
+	actualRoot := postID
+	if root.RootId != "" {
+		actualRoot = root.RootId
+	}
+	post := &model.Post{ChannelId: root.ChannelId, Message: message, RootId: actualRoot}
 	created, err := s.api.CreatePost(ctx, post)
 	if err != nil {
 		return mcp.NewToolResultError(friendlyErr("create reply", err)), nil
@@ -679,6 +695,12 @@ func (s *Server) replyToThread(ctx context.Context, req mcp.CallToolRequest) (*m
 func (s *Server) addReaction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	postID, _ := req.RequireString("post_id")
 	emoji, _ := req.RequireString("emoji")
+	if postID == "" {
+		return mcp.NewToolResultError("post_id is required"), nil
+	}
+	if emoji == "" {
+		return mcp.NewToolResultError("emoji is required"), nil
+	}
 	emoji = strings.Trim(emoji, ":")
 	if err := s.api.SaveReaction(ctx, postID, s.userID, emoji); err != nil {
 		return mcp.NewToolResultError(friendlyErr("add reaction", err)), nil
@@ -690,6 +712,12 @@ func (s *Server) addReaction(ctx context.Context, req mcp.CallToolRequest) (*mcp
 func (s *Server) removeReaction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	postID, _ := req.RequireString("post_id")
 	emoji, _ := req.RequireString("emoji")
+	if postID == "" {
+		return mcp.NewToolResultError("post_id is required"), nil
+	}
+	if emoji == "" {
+		return mcp.NewToolResultError("emoji is required"), nil
+	}
 	emoji = strings.Trim(emoji, ":")
 	if err := s.api.DeleteReaction(ctx, postID, s.userID, emoji); err != nil {
 		return mcp.NewToolResultError(friendlyErr("remove reaction", err)), nil
@@ -701,6 +729,12 @@ func (s *Server) removeReaction(ctx context.Context, req mcp.CallToolRequest) (*
 func (s *Server) editPost(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	postID, _ := req.RequireString("post_id")
 	message, _ := req.RequireString("message")
+	if postID == "" {
+		return mcp.NewToolResultError("post_id is required"), nil
+	}
+	if message == "" {
+		return mcp.NewToolResultError("message is required"), nil
+	}
 	if _, err := s.api.PatchPost(ctx, postID, message); err != nil {
 		return mcp.NewToolResultError(friendlyErr("edit post", err)), nil
 	}
