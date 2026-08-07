@@ -3,11 +3,14 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
+	"github.com/isdmx/mmrun/internal/config"
 	"github.com/isdmx/mmrun/internal/mcp"
 )
 
@@ -57,9 +60,44 @@ func newMcpCmd() *cobra.Command {
 	configCmd.Flags().StringVar(&configTeam, "team", "", "default team for the config snippet")
 	cmd.AddCommand(configCmd)
 
-	// skills subcommands — placeholder: detail in Task 8
+	var skillsDirFlag string
 	skillsCmd := &cobra.Command{Use: "skills", Short: "Manage MCP skills"}
+
+	skillsListCmd := &cobra.Command{
+		Use: "list", Short: "Show available skills",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			names, err := mcp.ListSkills(skillsDirOrDefault(skillsDirFlag))
+			if err != nil {
+				return err
+			}
+			if len(names) == 0 {
+				fmt.Println("No skills installed.")
+				fmt.Println("Run 'mmrun mcp skills init' to install the default skill.")
+				return nil
+			}
+			for _, name := range names {
+				fmt.Println(name)
+			}
+			return nil
+		},
+	}
+	skillsCmd.AddCommand(skillsListCmd)
+
+	skillsInitCmd := &cobra.Command{
+		Use: "init", Short: "Copy default skills to the skills directory",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return mcp.InitSkills(skillsDirOrDefault(skillsDirFlag))
+		},
+	}
+	skillsCmd.AddCommand(skillsInitCmd)
 	cmd.AddCommand(skillsCmd)
 
 	return cmd
+}
+
+func skillsDirOrDefault(dir string) string {
+	if dir != "" {
+		return dir
+	}
+	return filepath.Join(filepath.Dir(config.Paths().ConfigFile), "skills")
 }

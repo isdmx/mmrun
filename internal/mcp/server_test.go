@@ -1,6 +1,16 @@
 package mcp
 
-import "testing"
+import (
+	"context"
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mattermost/mattermost/server/public/model"
+
+	"github.com/isdmx/mmrun/internal/client"
+)
 
 func TestParseTier(t *testing.T) {
 	if got := parseTier("read"); got != TierRead {
@@ -51,5 +61,136 @@ func TestNew_NoAuth(t *testing.T) {
 	_, err := New(ServerConfig{ToolsTier: "read"})
 	if err == nil {
 		t.Error("expected error with no auth")
+	}
+}
+
+// setupTestServer creates a Server with a FakeAPI for test isolation.
+func setupTestServer(t *testing.T, tier SafetyTier) *Server {
+	t.Helper()
+	return &Server{
+		api:       &client.FakeAPI{},
+		userID:    "u1",
+		username:  "testuser",
+		serverURL: "https://mm.example.com",
+		team:      "eng",
+		tier:      tier,
+	}
+}
+
+func TestReadChannel_Success(t *testing.T) {
+	s := setupTestServer(t, TierRead)
+	pl := &model.PostList{
+		Order: []string{"p1"},
+		Posts: map[string]*model.Post{
+			"p1": {Id: "p1", Message: "hello", UserId: "u2", CreateAt: 1000, ChannelId: "c1"},
+		},
+	}
+	s.api = &client.FakeAPI{
+		Resolved_: &model.Channel{Id: "c1", Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen},
+		Posts_:    pl,
+	}
+
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"channel": "general"}}}
+	result, err := s.readChannel(context.Background(), req)
+	if err != nil {
+		t.Fatalf("readChannel: %v", err)
+	}
+	if len(result.Content) == 0 {
+		t.Fatal("expected text content")
+	}
+	text, ok := result.Content[0].(mcp.TextContent)
+	if !ok {
+		t.Fatalf("expected TextContent, got %T", result.Content[0])
+	}
+	if !strings.Contains(text.Text, "hello") {
+		t.Errorf("expected 'hello' in output, got: %s", text.Text)
+	}
+}
+
+func TestReadChannel_Error(t *testing.T) {
+	s := setupTestServer(t, TierRead)
+	s.api = &client.FakeAPI{Err: fmt.Errorf("network error")}
+
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"channel": "general"}}}
+	result, err := s.readChannel(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handler should not return error: %v", err)
+	}
+	if !result.IsError {
+		t.Error("expected error result")
+	}
+}
+
+func TestGetInbox_WithUnread(t *testing.T) {
+	s := setupTestServer(t, TierRead)
+	pl := &model.PostList{
+		Order: []string{"p1"},
+		Posts: map[string]*model.Post{
+			"p1": {Id: "p1", Message: "@testuser check this", UserId: "u2", CreateAt: 1000, ChannelId: "c1"},
+		},
+	}
+	s.api = &client.FakeAPI{
+		Teams_:         []*model.Team{{Id: "t1", Name: "eng"}},
+		Channels_:      []*model.Channel{{Id: "c1", Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen}},
+		Posts_:         pl,
+		Users_:         []*model.User{{Id: "u2", Username: "alice"}},
+		ChannelUnread_: &model.ChannelUnread{MsgCount: 5, MentionCount: 2},
+		Threads_: &model.Threads{
+			Threads: []*model.ThreadResponse{
+				{PostId: "t1", UnreadReplies: 3, LastReplyAt: 5000},
+			},
+		},
+	}
+
+	result, _ := s.getInbox(context.Background(), mcp.CallToolRequest{})
+	text := result.Content[0].(mcp.TextContent).Text
+	if !strings.Contains(text, "@testuser") {
+		t.Errorf("expected mention in output, got: %s", text)
+	}
+	if !strings.Contains(text, "mentions=true") {
+		t.Errorf("expected mentions=true, got: %s", text)
+	}
+	if !strings.Contains(text, "t1") {
+		t.Errorf("expected thread in output, got: %s", text)
+	}
+}
+
+func TestPostMessage(t *testing.T) {
+	s := setupTestServer(t, TierWrite)
+	s.api = &client.FakeAPI{
+		Resolved_: &model.Channel{Id: "c1", Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen},
+		Created_:  &model.Post{Id: "newpost"},
+	}
+
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"channel": "general",
+		"message": "deploy done",
+	}}}
+	result, _ := s.postMessage(context.Background(), req)
+	text := result.Content[0].(mcp.TextContent).Text
+	if text != "newpost" {
+		t.Errorf("expected 'newpost', got %q", text)
+	}
+}
+
+func TestReplyToThread(t *testing.T) {
+	s := setupTestServer(t, TierWrite)
+	s.api = &client.FakeAPI{
+		Thread_: &model.PostList{
+			Posts: map[string]*model.Post{
+				"p1": {Id: "p1", ChannelId: "c1", RootId: ""},
+			},
+		},
+		Created_: &model.Post{Id: "reply_id"},
+	}
+
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"post_id": "p1",
+		"message": "got it",
+	}}}
+	result, _ := s.replyToThread(context.Background(), req)
+	text := result.Content[0].(mcp.TextContent).Text
+	if text != "reply_id" {
+		t.Errorf("expected 'reply_id', got %q", text)
 	}
 }

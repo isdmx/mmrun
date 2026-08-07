@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -86,6 +87,13 @@ func New(cfg ServerConfig) (*Server, error) {
 		tier:      tier,
 	}
 	s.registerTools()
+	// 7. Load skills.
+	if cfg.SkillsDir == "" {
+		cfg.SkillsDir = filepath.Join(filepath.Dir(config.Paths().ConfigFile), "skills")
+	}
+	if err := s.loadSkills(cfg.SkillsDir); err != nil {
+		return nil, fmt.Errorf("load skills: %w", err)
+	}
 	return s, nil
 }
 
