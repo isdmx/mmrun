@@ -97,6 +97,12 @@ func (s *Server) resolveTeam(ctx context.Context, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if len(teams) == 0 {
+		return "", fmt.Errorf("no teams found")
+	}
+	if name == "" {
+		return teams[0].Id, nil
+	}
 	for _, t := range teams {
 		if t.Name == name || t.DisplayName == name {
 			return t.Id, nil
