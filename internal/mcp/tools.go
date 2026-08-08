@@ -126,8 +126,8 @@ func friendlyErr(prefix string, err error) string {
 func (s *Server) listThreads(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := getArgs(req)
 
-	limit := optionalInt(args, "limit", 60)
-	unreadOnly := optionalString(args, "unread", "false") != "false"
+	limit := optionalInt(args, "limit", 20)
+	unreadOnly := optionalString(args, "unread", "true") != "false"
 
 	teamID, err := s.resolveTeam(ctx, s.team)
 	if err != nil {
