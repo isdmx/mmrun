@@ -52,12 +52,6 @@ func getArgs(req mcp.CallToolRequest) map[string]any {
 	return map[string]any{}
 }
 
-// mentionsUser returns true when msg contains an @mention of username.
-func mentionsUser(msg, username string) bool {
-	needle := "@" + username
-	return strings.Contains(msg, needle)
-}
-
 // messageRow builds a standard Row for a post.
 func messageRow(p *model.Post, channelName, serverURL string) output.Row {
 	return output.Row{
@@ -122,60 +116,35 @@ func friendlyErr(prefix string, err error) string {
 
 // --- read-tier handlers -----------------------------------------------------
 
-// getInbox returns unread posts across channels and followed threads.
-func (s *Server) getInbox(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	teams, err := s.api.TeamsForUser(ctx, s.userID)
+// listThreads returns the user's followed threads with unread counts.
+func (s *Server) listThreads(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := getArgs(req)
+
+	limit := optionalInt(args, "limit", 60)
+	unreadOnly := optionalString(args, "unread", "false") != "false"
+
+	threads, err := s.api.UserThreads(ctx, s.userID, "", unreadOnly, limit)
 	if err != nil {
-		return mcp.NewToolResultError(friendlyErr("listing teams", err)), nil
+		return mcp.NewToolResultError(friendlyErr("listing threads", err)), nil
+	}
+	if threads == nil || len(threads.Threads) == 0 {
+		return mcp.NewToolResultText("No threads."), nil
 	}
 
-	var rows []output.Row
-
-	for _, team := range teams {
-		channels, err := s.api.ChannelsForUser(ctx, team.Id, s.userID)
-		if err != nil {
-			continue
-		}
-		for _, ch := range channels {
-			unread, err := s.api.ChannelUnread(ctx, ch.Id, s.userID)
-			if err != nil || unread.MsgCount == 0 {
-				continue
-			}
-			posts, err := s.api.PostsForChannel(ctx, ch.Id, 60)
-			if err != nil {
-				continue
-			}
-			for _, p := range client.SortPosts(posts) {
-				row := messageRow(p, ch.DisplayName, s.serverURL)
-				row["mentions"] = strconv.FormatBool(mentionsUser(p.Message, s.username))
-				rows = append(rows, row)
-			}
-		}
+	res := output.Result{
+		Title:   "Threads",
+		Columns: []string{"thread_id", "reply_count", "last_reply", "unread_replies", "unread_mentions"},
 	}
-
-	// Followed threads
-	threads, err := s.api.UserThreads(ctx, s.userID, "", false, 60)
-	if err == nil && threads != nil {
-		for _, t := range threads.Threads {
-			rows = append(rows, output.Row{
-				"thread_id":    t.PostId,
-				"reply_count":  strconv.FormatInt(t.ReplyCount, 10),
-				"last_reply":   time.UnixMilli(t.LastReplyAt).UTC().Format(time.RFC3339),
-				"unread":       strconv.FormatBool(t.UnreadReplies > 0 || t.UnreadMentions > 0),
-				"is_following": "true",
-			})
-		}
+	for _, t := range threads.Threads {
+		res.Rows = append(res.Rows, output.Row{
+			"thread_id":       t.PostId,
+			"reply_count":     strconv.FormatInt(t.ReplyCount, 10),
+			"last_reply":      time.UnixMilli(t.LastReplyAt).UTC().Format(time.RFC3339),
+			"unread_replies":  strconv.FormatInt(t.UnreadReplies, 10),
+			"unread_mentions": strconv.FormatInt(t.UnreadMentions, 10),
+		})
 	}
-
-	if len(rows) == 0 {
-		return mcp.NewToolResultText("No unread messages."), nil
-	}
-
-	return renderResult(output.Result{
-		Title:   "Inbox",
-		Columns: []string{"time", "user", "message", "post_id", "channel", "root_id", "permalink", "mentions", "thread_id", "reply_count", "last_reply", "unread", "is_following"},
-		Rows:    rows,
-	}), nil
+	return renderResult(res), nil
 }
 
 // readChannel reads messages from a channel, optionally since a timestamp.

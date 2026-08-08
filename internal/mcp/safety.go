@@ -26,7 +26,7 @@ func parseTier(s string) SafetyTier {
 // toolTiers maps every tool by name to its required SafetyTier.
 var toolTiers = map[string]SafetyTier{
 	// read tier (16 tools)
-	"get_inbox":         TierRead,
+	"list_threads":      TierRead,
 	"read_channel":      TierRead,
 	"get_thread":        TierRead,
 	"search_messages":   TierRead,

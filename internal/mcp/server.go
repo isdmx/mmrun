@@ -111,7 +111,7 @@ func (s *Server) registerTools() {
 			s.srv.AddTool(mcp.NewTool(name, mcp.WithDescription(desc)), handler)
 		}
 	}
-	register("get_inbox", "Get unread messages and followed threads across all teams", s.getInbox)
+	register("list_threads", "List followed threads with unread counts", s.listThreads)
 	register("read_channel", "Read messages from a channel", s.readChannel)
 	register("get_thread", "Read a full thread by root post ID", s.getThread)
 	register("search_messages", "Search messages across teams", s.searchMessages)

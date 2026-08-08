@@ -121,37 +121,30 @@ func TestReadChannel_Error(t *testing.T) {
 	}
 }
 
-func TestGetInbox_WithUnread(t *testing.T) {
+func TestListThreads_WithUnread(t *testing.T) {
 	s := setupTestServer(t, TierRead)
-	pl := &model.PostList{
-		Order: []string{"p1"},
-		Posts: map[string]*model.Post{
-			"p1": {Id: "p1", Message: "@testuser check this", UserId: "u2", CreateAt: 1000, ChannelId: "c1"},
-		},
-	}
 	s.api = &client.FakeAPI{
-		Teams_:         []*model.Team{{Id: "t1", Name: "eng"}},
-		Channels_:      []*model.Channel{{Id: "c1", Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen}},
-		Posts_:         pl,
-		Users_:         []*model.User{{Id: "u2", Username: "alice"}},
-		ChannelUnread_: &model.ChannelUnread{MsgCount: 5, MentionCount: 2},
 		Threads_: &model.Threads{
 			Threads: []*model.ThreadResponse{
-				{PostId: "t1", UnreadReplies: 3, LastReplyAt: 5000},
+				{PostId: "t1", UnreadReplies: 3, UnreadMentions: 1, LastReplyAt: 5000, ReplyCount: 7},
+				{PostId: "t2", UnreadReplies: 0, UnreadMentions: 0, LastReplyAt: 4000, ReplyCount: 2},
 			},
 		},
 	}
 
-	result, _ := s.getInbox(context.Background(), mcp.CallToolRequest{})
+	result, _ := s.listThreads(context.Background(), mcp.CallToolRequest{})
 	text := result.Content[0].(mcp.TextContent).Text
-	if !strings.Contains(text, "@testuser") {
-		t.Errorf("expected mention in output, got: %s", text)
-	}
-	if !strings.Contains(text, "mentions=true") {
-		t.Errorf("expected mentions=true, got: %s", text)
-	}
 	if !strings.Contains(text, "t1") {
-		t.Errorf("expected thread in output, got: %s", text)
+		t.Errorf("expected thread_id=t1, got: %s", text)
+	}
+	if !strings.Contains(text, "unread_replies=3") {
+		t.Errorf("expected unread_replies=3, got: %s", text)
+	}
+	if !strings.Contains(text, "unread_mentions=1") {
+		t.Errorf("expected unread_mentions=1, got: %s", text)
+	}
+	if !strings.Contains(text, "t2") {
+		t.Errorf("expected thread_id=t2, got: %s", text)
 	}
 }
 
