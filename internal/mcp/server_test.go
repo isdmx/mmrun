@@ -124,6 +124,7 @@ func TestReadChannel_Error(t *testing.T) {
 func TestListThreads_WithUnread(t *testing.T) {
 	s := setupTestServer(t, TierRead)
 	s.api = &client.FakeAPI{
+		Teams_: []*model.Team{{Id: "t1", Name: "eng"}},
 		Threads_: &model.Threads{
 			Threads: []*model.ThreadResponse{
 				{PostId: "t1", UnreadReplies: 3, UnreadMentions: 1, LastReplyAt: 5000, ReplyCount: 7},

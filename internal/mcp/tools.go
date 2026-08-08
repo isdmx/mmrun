@@ -123,7 +123,12 @@ func (s *Server) listThreads(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	limit := optionalInt(args, "limit", 60)
 	unreadOnly := optionalString(args, "unread", "false") != "false"
 
-	threads, err := s.api.UserThreads(ctx, s.userID, "", unreadOnly, limit)
+	teamID, err := s.resolveTeam(ctx, s.team)
+	if err != nil {
+		return mcp.NewToolResultError(friendlyErr("resolving team", err)), nil
+	}
+
+	threads, err := s.api.UserThreads(ctx, s.userID, teamID, unreadOnly, limit)
 	if err != nil {
 		return mcp.NewToolResultError(friendlyErr("listing threads", err)), nil
 	}
