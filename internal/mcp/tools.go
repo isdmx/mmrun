@@ -53,16 +53,49 @@ func getArgs(req mcp.CallToolRequest) map[string]any {
 }
 
 // messageRow builds a standard Row for a post.
-func messageRow(p *model.Post, channelName, serverURL string) output.Row {
+func messageRow(p *model.Post, channelName, serverURL, username string) output.Row {
+	user := username
+	if user == "" {
+		user = p.UserId
+	}
 	return output.Row{
 		"time":      time.UnixMilli(p.CreateAt).UTC().Format(time.RFC3339),
-		"user":      p.UserId,
+		"user":      user,
 		"message":   p.Message,
 		"post_id":   p.Id,
 		"channel":   channelName,
 		"root_id":   p.RootId,
 		"permalink": fmt.Sprintf("%s/_redirect/pl/%s", serverURL, p.Id),
 	}
+}
+
+// usernames resolves a set of post author IDs to usernames in one batched API
+// call, so handlers don't trigger N+1 lookups from the agent.
+func (s *Server) usernames(ctx context.Context, posts []*model.Post) map[string]string {
+	seen := map[string]struct{}{}
+	ids := make([]string, 0)
+	for _, p := range posts {
+		if p == nil || p.UserId == "" {
+			continue
+		}
+		if _, ok := seen[p.UserId]; ok {
+			continue
+		}
+		seen[p.UserId] = struct{}{}
+		ids = append(ids, p.UserId)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	users, err := s.api.UsersByIDs(ctx, ids)
+	if err != nil {
+		return nil
+	}
+	m := make(map[string]string, len(users))
+	for _, u := range users {
+		m[u.Id] = u.Username
+	}
+	return m
 }
 
 // renderResult renders a Result via AIRenderer and returns a CallToolResult.
@@ -201,9 +234,10 @@ func (s *Server) readChannel(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		}
 		sorted = filtered
 	}
+	names := s.usernames(ctx, sorted)
 	rows := make([]output.Row, 0, len(sorted))
 	for _, p := range sorted {
-		rows = append(rows, messageRow(p, ch.DisplayName, s.serverURL))
+		rows = append(rows, messageRow(p, ch.DisplayName, s.serverURL, names[p.UserId]))
 	}
 
 	if len(rows) == 0 {
@@ -237,9 +271,10 @@ func (s *Server) getThread(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	}
 
 	sorted := client.SortPosts(thread)
+	names := s.usernames(ctx, sorted)
 	rows := make([]output.Row, 0, len(sorted))
 	for _, p := range sorted {
-		rows = append(rows, messageRow(p, "", s.serverURL))
+		rows = append(rows, messageRow(p, "", s.serverURL, names[p.UserId]))
 	}
 
 	if len(rows) == 0 {
@@ -278,9 +313,10 @@ func (s *Server) searchMessages(ctx context.Context, req mcp.CallToolRequest) (*
 	}
 
 	sorted := client.SortPosts(posts)
+	names := s.usernames(ctx, sorted)
 	rows := make([]output.Row, 0, len(sorted))
 	for _, p := range sorted {
-		rows = append(rows, messageRow(p, "", s.serverURL))
+		rows = append(rows, messageRow(p, "", s.serverURL, names[p.UserId]))
 	}
 
 	if len(rows) == 0 {
@@ -500,9 +536,10 @@ func (s *Server) getPinnedPosts(ctx context.Context, req mcp.CallToolRequest) (*
 	}
 
 	sorted := client.SortPosts(pinned)
+	names := s.usernames(ctx, sorted)
 	rows := make([]output.Row, 0, len(sorted))
 	for _, p := range sorted {
-		rows = append(rows, messageRow(p, ch.DisplayName, s.serverURL))
+		rows = append(rows, messageRow(p, ch.DisplayName, s.serverURL, names[p.UserId]))
 	}
 
 	if len(rows) == 0 {
@@ -538,9 +575,10 @@ func (s *Server) getFlaggedPosts(ctx context.Context, req mcp.CallToolRequest) (
 	}
 
 	sorted := client.SortPosts(flagged)
+	names := s.usernames(ctx, sorted)
 	rows := make([]output.Row, 0, len(sorted))
 	for _, p := range sorted {
-		rows = append(rows, messageRow(p, "", s.serverURL))
+		rows = append(rows, messageRow(p, "", s.serverURL, names[p.UserId]))
 	}
 
 	if len(rows) == 0 {

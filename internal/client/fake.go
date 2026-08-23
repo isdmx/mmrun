@@ -57,6 +57,7 @@ type FakeAPI struct {
 	TeamsForUserCalls_      int
 	PostThreadPerPage_      int
 	PostsForChannelPerPage_ int
+	UsersByIDsArgs_         []string
 }
 
 var _ API = (*FakeAPI)(nil)
@@ -87,7 +88,8 @@ func (f *FakeAPI) UserByEmail(context.Context, string) (*model.User, error) {
 	return f.UserByName_, f.Err
 }
 
-func (f *FakeAPI) UsersByIDs(context.Context, []string) ([]*model.User, error) {
+func (f *FakeAPI) UsersByIDs(_ context.Context, ids []string) ([]*model.User, error) {
+	f.UsersByIDsArgs_ = ids
 	return f.Users_, f.Err
 }
 

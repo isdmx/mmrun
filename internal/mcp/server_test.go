@@ -247,6 +247,29 @@ func TestReadChannel_SinceFilterAndLimit(t *testing.T) {
 	}
 }
 
+func TestReadChannel_ResolvesUsernamesInBatch(t *testing.T) {
+	s := setupTestServer(t, TierRead)
+	pl := &model.PostList{Order: []string{"p1", "p2"}, Posts: map[string]*model.Post{
+		"p1": {Id: "p1", Message: "hello", UserId: "u2", CreateAt: 1000, ChannelId: "c1"},
+		"p2": {Id: "p2", Message: "world", UserId: "u3", CreateAt: 2000, ChannelId: "c1"},
+	}}
+	f := &client.FakeAPI{
+		Resolved_: &model.Channel{Id: "c1", Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen},
+		Posts_:    pl,
+		Users_:    []*model.User{{Id: "u2", Username: "alice"}, {Id: "u3", Username: "bob"}},
+	}
+	s.api = f
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"channel": "general"}}}
+	result, _ := s.readChannel(context.Background(), req)
+	text := result.Content[0].(mcp.TextContent).Text
+	if !strings.Contains(text, "alice") || !strings.Contains(text, "bob") {
+		t.Errorf("expected usernames alice+bob in output: %s", text)
+	}
+	if len(f.UsersByIDsArgs_) != 2 {
+		t.Errorf("expected 2 author IDs in one batch, got %v", f.UsersByIDsArgs_)
+	}
+}
+
 func TestListThreads_UsesCachedTeam(t *testing.T) {
 	s := setupTestServer(t, TierRead)
 	s.teamID = "t1"
