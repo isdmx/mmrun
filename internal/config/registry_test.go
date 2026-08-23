@@ -49,6 +49,12 @@ func TestRegistry_Validation(t *testing.T) {
 	if err := Set(c, "color", "always"); err != nil {
 		t.Errorf("valid color rejected: %v", err)
 	}
+	if err := Set(c, "http_timeout", "notaduration"); err == nil {
+		t.Error("expected duration validation error")
+	}
+	if err := Set(c, "http_timeout", "45s"); err != nil {
+		t.Errorf("valid duration rejected: %v", err)
+	}
 }
 
 func TestRegistry_Template(t *testing.T) {
@@ -100,7 +106,7 @@ func TestGet_DownloadDirEffective(t *testing.T) {
 
 func TestKeys_Sorted(t *testing.T) {
 	keys := Keys()
-	if len(keys) != 16 {
-		t.Errorf("expected 16 keys, got %d", len(keys))
+	if len(keys) != 17 {
+		t.Errorf("expected 17 keys, got %d", len(keys))
 	}
 }

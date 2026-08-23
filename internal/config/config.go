@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -15,6 +16,7 @@ const appName = "mmrun"
 // Config holds user preferences persisted to config.toml.
 type Config struct {
 	ServerURL     string                   `toml:"server_url"`
+	HTTPTimeout_  string                   `toml:"http_timeout"` //nolint:revive // toml field paired with accessor method
 	DefaultTeam   string                   `toml:"default_team"`
 	OutputMode    string                   `toml:"output_mode"`
 	DefaultLimit_ int                      `toml:"default_limit"` //nolint:revive // toml field paired with accessor method
@@ -45,6 +47,18 @@ func (c *Config) DefaultLimit() int {
 		return c.DefaultLimit_
 	}
 	return 50
+}
+
+// HTTPTimeout returns the configured HTTP request timeout as a duration, or
+// 30s when unset or invalid.
+func (c *Config) HTTPTimeout() time.Duration {
+	if c.HTTPTimeout_ == "" {
+		return 30 * time.Second
+	}
+	if d, err := time.ParseDuration(c.HTTPTimeout_); err == nil && d > 0 {
+		return d
+	}
+	return 30 * time.Second
 }
 
 // PreviewLen returns the configured message preview length, or 140.

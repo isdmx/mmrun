@@ -10,6 +10,7 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 
+	"github.com/isdmx/mmrun/internal/config"
 	"github.com/isdmx/mmrun/internal/progress"
 )
 
@@ -67,6 +68,16 @@ type API interface {
 	UpdateCustomStatus(ctx context.Context, userID, emoji, text string) error
 }
 
+const defaultHTTPTimeout = 30 * time.Second
+
+func httpTimeout() time.Duration {
+	cfg, err := config.Load()
+	if err != nil || cfg == nil {
+		return defaultHTTPTimeout
+	}
+	return cfg.HTTPTimeout()
+}
+
 // Client wraps model.Client4 and satisfies API.
 type Client struct {
 	mm *model.Client4
@@ -76,6 +87,7 @@ type Client struct {
 func NewWithToken(serverURL, token string, bar *progress.Bar) *Client {
 	mm := model.NewAPIv4Client(serverURL)
 	mm.SetToken(token)
+	mm.HTTPClient.Timeout = httpTimeout()
 	c := &Client{mm: mm}
 	if bar != nil {
 		base := c.mm.HTTPClient.Transport
@@ -89,7 +101,9 @@ func NewWithToken(serverURL, token string, bar *progress.Bar) *Client {
 
 // New builds an unauthenticated Client (for the login flow).
 func New(serverURL string) *Client {
-	return &Client{mm: model.NewAPIv4Client(serverURL)}
+	mm := model.NewAPIv4Client(serverURL)
+	mm.HTTPClient.Timeout = httpTimeout()
+	return &Client{mm: mm}
 }
 
 func (c *Client) ServerURL() string { return c.mm.URL }
