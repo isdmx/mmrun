@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type setting struct {
@@ -44,6 +45,20 @@ func posIntValidator(v string) error {
 	return nil
 }
 
+func durationValidator(v string) error {
+	if v == "" {
+		return nil
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return fmt.Errorf("must be a duration (e.g. 30s, 1m)")
+	}
+	if d <= 0 {
+		return fmt.Errorf("must be positive")
+	}
+	return nil
+}
+
 func setInt(target *int) func(*Config, string) error {
 	return func(_ *Config, v string) error {
 		if v == "" {
@@ -69,6 +84,12 @@ func settingsFor(c *Config) map[string]setting {
 			validate: func(string) error { return nil },
 			get:      func(c *Config) string { return c.ServerURL },
 			set:      func(c *Config, v string) error { c.ServerURL = v; return nil },
+		},
+		"http_timeout": {
+			description: "HTTP request timeout (e.g. 30s, 1m)", def: "30s",
+			validate: durationValidator,
+			get:      func(c *Config) string { return c.HTTPTimeout().String() },
+			set:      func(c *Config, v string) error { c.HTTPTimeout_ = v; return nil },
 		},
 		"default_team": {
 			description: "team used for bare channel names", def: "",

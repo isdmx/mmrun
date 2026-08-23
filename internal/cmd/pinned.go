@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/output"
 )
 
@@ -65,7 +66,7 @@ func runPinned(app *appContext, channelRef, columns string, full bool, style, ti
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Pinned", chronological(pl), "", full, cols, true, style)
+	res := renderMessages(ctx, app, "Pinned", client.SortPosts(pl), "", full, cols, true, style)
 	if quiet {
 		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
 	}

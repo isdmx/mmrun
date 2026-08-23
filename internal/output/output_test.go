@@ -57,6 +57,7 @@ func TestModeSelection_AutoNonTTYIsAI(t *testing.T) {
 }
 
 func TestColorMode(t *testing.T) {
+	os.Unsetenv("NO_COLOR")
 	if colorEnabled("never", true) {
 		t.Error("never must disable color")
 	}
@@ -94,6 +95,7 @@ func TestNoColorEnv(t *testing.T) {
 }
 
 func TestThemeColor_DarkProducesANSI(t *testing.T) {
+	os.Unsetenv("NO_COLOR")
 	r := NewWithOptions("human", os.Stdout, Options{Theme: "dark"})
 	hr, ok := r.(humanRenderer)
 	if !ok || !hr.color {

@@ -5,15 +5,17 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
 func TestFileDownload_WritesToDir(t *testing.T) {
 	dir := t.TempDir()
 	app := &appContext{
-		api: &fakeAPI{
-			fileInfos: []*model.FileInfo{{Id: "f1", Name: "report.txt"}},
-			fileData:  []byte("hello world"),
+		api: &client.FakeAPI{
+			FileInfos_: []*model.FileInfo{{Id: "f1", Name: "report.txt"}},
+			FileData_:  []byte("hello world"),
 		},
 		outputMode: "ai",
 	}
@@ -36,9 +38,9 @@ func TestFileDownload_WritesToDir(t *testing.T) {
 func TestFileDownload_ByFileID(t *testing.T) {
 	dir := t.TempDir()
 	app := &appContext{
-		api: &fakeAPI{
-			fileInfo: &model.FileInfo{Id: "f9", Name: "single.txt"},
-			fileData: []byte("solo"),
+		api: &client.FakeAPI{
+			FileInfo_: &model.FileInfo{Id: "f9", Name: "single.txt"},
+			FileData_: []byte("solo"),
 		},
 		outputMode: "ai",
 	}

@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
@@ -16,11 +18,11 @@ func TestMentions_TeamScoped(t *testing.T) {
 			ChannelId: "c1", CreateAt: 1000,
 		}},
 	}
-	fake := &fakeAPI{
-		teams:    []*model.Team{{Id: "t1", Name: "eng"}},
-		posts:    pl,
-		resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen},
-		users:    []*model.User{{Id: "u2", Username: "bob"}},
+	fake := &client.FakeAPI{
+		Teams_:    []*model.Team{{Id: "t1", Name: "eng"}},
+		Posts_:    pl,
+		Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen},
+		Users_:    []*model.User{{Id: "u2", Username: "bob"}},
 	}
 	app := &appContext{api: fake, outputMode: "ai", username: "alice", userID: "u1", previewLen: 140}
 	var buf bytes.Buffer

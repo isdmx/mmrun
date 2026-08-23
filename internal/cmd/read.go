@@ -6,12 +6,12 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"sort"
 	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
 
+	"github.com/isdmx/mmrun/internal/client"
 	"github.com/isdmx/mmrun/internal/output"
 )
 
@@ -176,7 +176,7 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 		return err
 	}
 
-	posts := chronological(pl)
+	posts := client.SortPosts(pl)
 	if opts.threadsOnly {
 		posts = filterRoots(posts)
 	}
@@ -234,20 +234,4 @@ func permalinkTeamFor(ctx context.Context, app *appContext, ch *model.Channel) s
 		return t.Name
 	}
 	return ""
-}
-
-// chronological returns the posts of a PostList sorted oldest-first. It is
-// resilient to a nil list and to Order/Posts inconsistencies.
-func chronological(pl *model.PostList) []*model.Post {
-	if pl == nil {
-		return nil
-	}
-	posts := make([]*model.Post, 0, len(pl.Posts))
-	for _, p := range pl.Posts {
-		if p != nil {
-			posts = append(posts, p)
-		}
-	}
-	sort.SliceStable(posts, func(i, j int) bool { return posts[i].CreateAt < posts[j].CreateAt })
-	return posts
 }

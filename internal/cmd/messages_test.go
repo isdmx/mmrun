@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/mattermost/mattermost/server/public/model"
+
+	"github.com/isdmx/mmrun/internal/client"
 )
 
 func TestRead_IncludesActionableColumns(t *testing.T) {
@@ -17,11 +19,11 @@ func TestRead_IncludesActionableColumns(t *testing.T) {
 		},
 	}
 	app := &appContext{
-		api: &fakeAPI{
-			resolved: &model.Channel{Id: "c1", Name: "general", DisplayName: "General", TeamId: "t1"},
-			teams:    []*model.Team{{Id: "t1", Name: "eng"}},
-			users:    []*model.User{{Id: "u2", Username: "bob"}},
-			posts:    pl,
+		api: &client.FakeAPI{
+			Resolved_: &model.Channel{Id: "c1", Name: "general", DisplayName: "General", TeamId: "t1"},
+			Teams_:    []*model.Team{{Id: "t1", Name: "eng"}},
+			Users_:    []*model.User{{Id: "u2", Username: "bob"}},
+			Posts_:    pl,
 		},
 		outputMode: "ai",
 		previewLen: 140,
@@ -74,7 +76,7 @@ func TestFileSummary(t *testing.T) {
 
 func TestChannelLabel_DirectMessage(t *testing.T) {
 	app := &appContext{
-		api:    &fakeAPI{resolved: &model.Channel{Id: "d1", Name: "u1__u2", Type: model.ChannelTypeDirect}, users: []*model.User{{Id: "u2", Username: "bob"}}},
+		api:    &client.FakeAPI{Resolved_: &model.Channel{Id: "d1", Name: "u1__u2", Type: model.ChannelTypeDirect}, Users_: []*model.User{{Id: "u2", Username: "bob"}}},
 		userID: "u1",
 	}
 	got := channelLabel(context.Background(), app, "d1", map[string]string{})
@@ -84,7 +86,7 @@ func TestChannelLabel_DirectMessage(t *testing.T) {
 }
 
 func TestResolveReactions(t *testing.T) {
-	fake := &fakeAPI{reactions: []*model.Reaction{
+	fake := &client.FakeAPI{Reactions_: []*model.Reaction{
 		{PostId: "p1", EmojiName: "thumbsup", UserId: "u2"},
 		{PostId: "p1", EmojiName: "thumbsup", UserId: "u3"},
 		{PostId: "p1", EmojiName: "rocket", UserId: "u2"},
@@ -99,7 +101,7 @@ func TestResolveReactions(t *testing.T) {
 
 func TestChannelLabel_SelfDM(t *testing.T) {
 	app := &appContext{
-		api:    &fakeAPI{resolved: &model.Channel{Id: "d1", Name: "u1__u1", Type: model.ChannelTypeDirect}},
+		api:    &client.FakeAPI{Resolved_: &model.Channel{Id: "d1", Name: "u1__u1", Type: model.ChannelTypeDirect}},
 		userID: "u1",
 	}
 	got := channelLabel(context.Background(), app, "d1", map[string]string{})
@@ -109,7 +111,7 @@ func TestChannelLabel_SelfDM(t *testing.T) {
 }
 
 func TestStatusDots(t *testing.T) {
-	fake := &fakeAPI{statuses: []*model.Status{
+	fake := &client.FakeAPI{Statuses_: []*model.Status{
 		{UserId: "u2", Status: "online"},
 		{UserId: "u3", Status: "offline"},
 	}}
@@ -143,7 +145,7 @@ func TestReadHideChannel(t *testing.T) {
 		Order: []string{"p1"},
 		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "hi", UserId: "u2", ChannelId: "c1", CreateAt: 1000}},
 	}
-	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}}}
+	fake := &client.FakeAPI{Resolved_: &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}, Posts_: pl, Users_: []*model.User{{Id: "u2", Username: "bob"}}}
 	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
 	var buf bytes.Buffer
 	if err := runRead(app, "eng/general", readOpts{limit: 50}, &buf); err != nil {
@@ -163,10 +165,10 @@ func TestPinnedColumn(t *testing.T) {
 		Order: []string{"p1"},
 		Posts: map[string]*model.Post{"p1": {Id: "p1", Message: "hi", UserId: "u2", ChannelId: "c1", CreateAt: 1000, IsPinned: true}},
 	}
-	fake := &fakeAPI{resolved: &model.Channel{Id: "c1", Name: "g", Type: model.ChannelTypeOpen}, posts: pl, users: []*model.User{{Id: "u2", Username: "bob"}}}
+	fake := &client.FakeAPI{Resolved_: &model.Channel{Id: "c1", Name: "g", Type: model.ChannelTypeOpen}, Posts_: pl, Users_: []*model.User{{Id: "u2", Username: "bob"}}}
 	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
 	columns, _ := resolveColumns(messageColumns, "")
-	res := renderMessages(context.Background(), app, "Test", chronological(pl), "", false, columns, true, "")
+	res := renderMessages(context.Background(), app, "Test", client.SortPosts(pl), "", false, columns, true, "")
 	if res.Rows[0]["pinned"] != "📌" {
 		t.Errorf("pinned = %q, want 📌", res.Rows[0]["pinned"])
 	}

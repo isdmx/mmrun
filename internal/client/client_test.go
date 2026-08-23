@@ -186,3 +186,10 @@ func TestResolveChannel_BareWordFallback(t *testing.T) {
 		t.Errorf("channel id = %q, want dm1", ch.Id)
 	}
 }
+
+func TestNewWithToken_SetsHTTPTimeout(t *testing.T) {
+	c := NewWithToken("https://example.com", "tok", nil)
+	if c.mm.HTTPClient.Timeout <= 0 {
+		t.Errorf("expected non-zero HTTP client timeout, got %v", c.mm.HTTPClient.Timeout)
+	}
+}

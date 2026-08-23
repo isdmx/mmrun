@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestPaths_UsesXDGEnv(t *testing.T) {
@@ -52,6 +53,18 @@ func TestDefaults(t *testing.T) {
 	c2 := &Config{DefaultLimit_: 10, PreviewLen_: 80, ColorMode: "never"}
 	if c2.DefaultLimit() != 10 || c2.PreviewLen() != 80 || c2.Color() != "never" {
 		t.Errorf("overrides not honored: %+v", c2)
+	}
+}
+
+func TestHTTPTimeout(t *testing.T) {
+	if got := (&Config{}).HTTPTimeout(); got != 30*time.Second {
+		t.Errorf("default = %v, want 30s", got)
+	}
+	if got := (&Config{HTTPTimeout_: "45s"}).HTTPTimeout(); got != 45*time.Second {
+		t.Errorf("45s = %v, want 45s", got)
+	}
+	if got := (&Config{HTTPTimeout_: "bogus"}).HTTPTimeout(); got != 30*time.Second {
+		t.Errorf("invalid = %v, want fallback 30s", got)
 	}
 }
 

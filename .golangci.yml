@@ -78,6 +78,13 @@ linters:
       - path: internal/client/client\.go
         linters: [revive]
         text: "exported:"
+      # FakeAPI test double uses trailing underscores to mark exported fields.
+      - path: internal/client/fake\.go
+        linters: [revive]
+        text: "var-naming:"
+      - path: internal/client/fake\.go
+        linters: [revive]
+        text: "exported:"
 
 formatters:
   enable:

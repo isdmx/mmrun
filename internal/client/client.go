@@ -10,6 +10,7 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 
+	"github.com/isdmx/mmrun/internal/config"
 	"github.com/isdmx/mmrun/internal/progress"
 )
 
@@ -44,7 +45,9 @@ type API interface {
 	Bots(ctx context.Context) ([]*model.Bot, error)
 	PostsForChannel(ctx context.Context, channelID string, perPage int) (*model.PostList, error)
 	PostsSince(ctx context.Context, channelID string, since int64) (*model.PostList, error)
+	GetPost(ctx context.Context, postID string) (*model.Post, error)
 	PostThread(ctx context.Context, postID string) (*model.PostList, error)
+	PostThreadPaged(ctx context.Context, postID string, perPage int) (*model.PostList, error)
 	UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int) (*model.Threads, error)
 	UploadFile(ctx context.Context, data []byte, channelID, filename string) (*model.FileUploadResponse, error)
 	GetFile(ctx context.Context, fileID string) ([]byte, error)
@@ -67,6 +70,16 @@ type API interface {
 	UpdateCustomStatus(ctx context.Context, userID, emoji, text string) error
 }
 
+const defaultHTTPTimeout = 30 * time.Second
+
+func httpTimeout() time.Duration {
+	cfg, err := config.Load()
+	if err != nil || cfg == nil {
+		return defaultHTTPTimeout
+	}
+	return cfg.HTTPTimeout()
+}
+
 // Client wraps model.Client4 and satisfies API.
 type Client struct {
 	mm *model.Client4
@@ -76,6 +89,7 @@ type Client struct {
 func NewWithToken(serverURL, token string, bar *progress.Bar) *Client {
 	mm := model.NewAPIv4Client(serverURL)
 	mm.SetToken(token)
+	mm.HTTPClient.Timeout = httpTimeout()
 	c := &Client{mm: mm}
 	if bar != nil {
 		base := c.mm.HTTPClient.Transport
@@ -89,7 +103,9 @@ func NewWithToken(serverURL, token string, bar *progress.Bar) *Client {
 
 // New builds an unauthenticated Client (for the login flow).
 func New(serverURL string) *Client {
-	return &Client{mm: model.NewAPIv4Client(serverURL)}
+	mm := model.NewAPIv4Client(serverURL)
+	mm.HTTPClient.Timeout = httpTimeout()
+	return &Client{mm: mm}
 }
 
 func (c *Client) ServerURL() string { return c.mm.URL }
@@ -237,8 +253,18 @@ func (c *Client) PostsSince(ctx context.Context, channelID string, since int64) 
 	return pl, err
 }
 
+func (c *Client) GetPost(ctx context.Context, postID string) (*model.Post, error) {
+	p, _, err := c.mm.GetPost(ctx, postID, "")
+	return p, err
+}
+
 func (c *Client) PostThread(ctx context.Context, postID string) (*model.PostList, error) {
 	pl, _, err := c.mm.GetPostThread(ctx, postID, "", false)
+	return pl, err
+}
+
+func (c *Client) PostThreadPaged(ctx context.Context, postID string, perPage int) (*model.PostList, error) {
+	pl, _, err := c.mm.GetPostThreadWithOpts(ctx, postID, "", model.GetPostsOptions{PerPage: perPage})
 	return pl, err
 }
 

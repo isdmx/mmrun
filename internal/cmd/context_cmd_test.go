@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/isdmx/mmrun/internal/client"
+
 	"github.com/isdmx/mmrun/internal/session"
 )
 
@@ -13,7 +15,7 @@ func TestContextList(t *testing.T) {
 		ServerURL: "https://mm.example.com", Token: "t1", UserID: "u1",
 		ContextName: "default",
 	})
-	app := &appContext{api: &fakeAPI{}, outputMode: "ai"}
+	app := &appContext{api: &client.FakeAPI{}, outputMode: "ai"}
 	var buf bytes.Buffer
 	if err := runContextList(app, &buf); err != nil {
 		t.Fatalf("context list: %v", err)
