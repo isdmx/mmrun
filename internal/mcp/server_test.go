@@ -188,3 +188,16 @@ func TestReplyToThread(t *testing.T) {
 		t.Errorf("expected 'reply_id', got %q", text)
 	}
 }
+
+func TestListThreads_UsesCachedTeam(t *testing.T) {
+	s := setupTestServer(t, TierRead)
+	s.teamID = "t1"
+	f := &client.FakeAPI{
+		Threads_: &model.Threads{Threads: []*model.ThreadResponse{{PostId: "t1"}}},
+	}
+	s.api = f
+	_, _ = s.listThreads(context.Background(), mcp.CallToolRequest{})
+	if f.TeamsForUserCalls_ != 0 {
+		t.Errorf("expected 0 TeamsForUser calls with cached team, got %d", f.TeamsForUserCalls_)
+	}
+}

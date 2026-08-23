@@ -93,6 +93,9 @@ func parseSince(v string) (int64, error) {
 // resolveTeam searches the user's teams for one whose Name or DisplayName
 // matches name.
 func (s *Server) resolveTeam(ctx context.Context, name string) (string, error) {
+	if name == s.team && s.teamID != "" {
+		return s.teamID, nil
+	}
 	teams, err := s.api.TeamsForUser(ctx, s.userID)
 	if err != nil {
 		return "", err

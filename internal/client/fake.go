@@ -52,6 +52,8 @@ type FakeAPI struct {
 	PostFlagged_   string
 	SearchTerms_   string
 	SearchCalls_   int
+
+	TeamsForUserCalls_ int
 }
 
 var _ API = (*FakeAPI)(nil)
@@ -91,6 +93,7 @@ func (f *FakeAPI) SearchUsers(context.Context, string, string, int) ([]*model.Us
 }
 
 func (f *FakeAPI) TeamsForUser(context.Context, string) ([]*model.Team, error) {
+	f.TeamsForUserCalls_++
 	return f.Teams_, f.Err
 }
 

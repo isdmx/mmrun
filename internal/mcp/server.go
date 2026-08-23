@@ -30,6 +30,7 @@ type Server struct {
 	username  string
 	serverURL string
 	team      string
+	teamID    string
 	tier      SafetyTier
 }
 
@@ -70,6 +71,18 @@ func New(cfg ServerConfig) (*Server, error) {
 		}
 	}
 
+	teamID := ""
+	if team != "" {
+		if teams, err := api.TeamsForUser(context.Background(), me.Id); err == nil {
+			for _, t := range teams {
+				if t.Name == team || t.DisplayName == team {
+					teamID = t.Id
+					break
+				}
+			}
+		}
+	}
+
 	// 5. Create MCP server.
 	srv := server.NewMCPServer("mmrun", version.String(),
 		server.WithToolCapabilities(true),
@@ -84,6 +97,7 @@ func New(cfg ServerConfig) (*Server, error) {
 		username:  me.Username,
 		serverURL: serverURL,
 		team:      team,
+		teamID:    teamID,
 		tier:      tier,
 	}
 	s.registerTools()
