@@ -45,6 +45,7 @@ type API interface {
 	Bots(ctx context.Context) ([]*model.Bot, error)
 	PostsForChannel(ctx context.Context, channelID string, perPage int) (*model.PostList, error)
 	PostsSince(ctx context.Context, channelID string, since int64) (*model.PostList, error)
+	GetPost(ctx context.Context, postID string) (*model.Post, error)
 	PostThread(ctx context.Context, postID string) (*model.PostList, error)
 	UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int) (*model.Threads, error)
 	UploadFile(ctx context.Context, data []byte, channelID, filename string) (*model.FileUploadResponse, error)
@@ -249,6 +250,11 @@ func (c *Client) PostsForChannel(ctx context.Context, channelID string, perPage 
 func (c *Client) PostsSince(ctx context.Context, channelID string, since int64) (*model.PostList, error) {
 	pl, _, err := c.mm.GetPostsSince(ctx, channelID, since, false)
 	return pl, err
+}
+
+func (c *Client) GetPost(ctx context.Context, postID string) (*model.Post, error) {
+	p, _, err := c.mm.GetPost(ctx, postID, "")
+	return p, err
 }
 
 func (c *Client) PostThread(ctx context.Context, postID string) (*model.PostList, error) {

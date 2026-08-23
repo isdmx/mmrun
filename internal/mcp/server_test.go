@@ -170,11 +170,7 @@ func TestPostMessage(t *testing.T) {
 func TestReplyToThread(t *testing.T) {
 	s := setupTestServer(t, TierWrite)
 	s.api = &client.FakeAPI{
-		Thread_: &model.PostList{
-			Posts: map[string]*model.Post{
-				"p1": {Id: "p1", ChannelId: "c1", RootId: ""},
-			},
-		},
+		Post_:    &model.Post{Id: "p1", ChannelId: "c1", RootId: ""},
 		Created_: &model.Post{Id: "reply_id"},
 	}
 
@@ -186,6 +182,23 @@ func TestReplyToThread(t *testing.T) {
 	text := result.Content[0].(mcp.TextContent).Text
 	if text != "reply_id" {
 		t.Errorf("expected 'reply_id', got %q", text)
+	}
+}
+
+func TestMarkThreadRead_UsesGetPost(t *testing.T) {
+	s := setupTestServer(t, TierWrite)
+	f := &client.FakeAPI{
+		Post_:     &model.Post{Id: "t1", ChannelId: "c1", RootId: ""},
+		Resolved_: &model.Channel{Id: "c1", TeamId: "team1"},
+	}
+	s.api = f
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"thread_id": "t1"}}}
+	result, _ := s.markThreadRead(context.Background(), req)
+	if result.IsError {
+		t.Fatalf("unexpected error: %v", result)
+	}
+	if f.ReadThread_ != "t1" {
+		t.Errorf("expected ReadThread_=%q, got %q", "t1", f.ReadThread_)
 	}
 }
 

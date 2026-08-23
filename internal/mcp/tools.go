@@ -654,13 +654,12 @@ func (s *Server) replyToThread(ctx context.Context, req mcp.CallToolRequest) (*m
 	if message == "" {
 		return mcp.NewToolResultError("message is required"), nil
 	}
-	thread, err := s.api.PostThread(ctx, postID)
+	root, err := s.api.GetPost(ctx, postID)
 	if err != nil {
-		return mcp.NewToolResultError(friendlyErr("fetch thread", err)), nil
+		return mcp.NewToolResultError(friendlyErr("fetch post", err)), nil
 	}
-	root, ok := thread.Posts[postID]
-	if !ok || root == nil {
-		return mcp.NewToolResultError("thread root post not found"), nil
+	if root == nil {
+		return mcp.NewToolResultError("post not found"), nil
 	}
 	actualRoot := postID
 	if root.RootId != "" {
@@ -764,13 +763,12 @@ func (s *Server) markChannelRead(ctx context.Context, req mcp.CallToolRequest) (
 // markThreadRead marks a thread as read for the current user.
 func (s *Server) markThreadRead(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	threadID, _ := req.RequireString("thread_id")
-	thread, err := s.api.PostThread(ctx, threadID)
+	root, err := s.api.GetPost(ctx, threadID)
 	if err != nil {
-		return mcp.NewToolResultError(friendlyErr("fetch thread", err)), nil
+		return mcp.NewToolResultError(friendlyErr("fetch post", err)), nil
 	}
-	root, ok := thread.Posts[threadID]
-	if !ok || root == nil {
-		return mcp.NewToolResultError("thread root post not found"), nil
+	if root == nil {
+		return mcp.NewToolResultError("post not found"), nil
 	}
 	ch, err := s.api.Channel(ctx, root.ChannelId)
 	if err != nil {
