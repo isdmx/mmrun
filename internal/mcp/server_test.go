@@ -202,6 +202,24 @@ func TestMarkThreadRead_UsesGetPost(t *testing.T) {
 	}
 }
 
+func TestGetThread_CapsLimit(t *testing.T) {
+	s := setupTestServer(t, TierRead)
+	f := &client.FakeAPI{
+		Thread_: &model.PostList{Order: []string{"p1"}, Posts: map[string]*model.Post{
+			"p1": {Id: "p1", Message: "hi", UserId: "u2", CreateAt: 1000},
+		}},
+	}
+	s.api = f
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"post_id": "p1", "limit": 50}}}
+	result, _ := s.getThread(context.Background(), req)
+	if result.IsError {
+		t.Fatalf("unexpected error: %v", result)
+	}
+	if f.PostThreadPerPage_ != 50 {
+		t.Errorf("expected perPage 50, got %d", f.PostThreadPerPage_)
+	}
+}
+
 func TestListThreads_UsesCachedTeam(t *testing.T) {
 	s := setupTestServer(t, TierRead)
 	s.teamID = "t1"

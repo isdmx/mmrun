@@ -28,7 +28,7 @@ func optionalString(args map[string]any, key, def string) string {
 	return def
 }
 
-func optionalInt(args map[string]any, key string, def int) int {
+func optionalInt(args map[string]any, key string, def int) int { //nolint:unparam // key mirrors optionalString; only "limit" is read today
 	if v, ok := args[key]; ok {
 		switch n := v.(type) {
 		case float64:
@@ -217,7 +217,12 @@ func (s *Server) getThread(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 		return mcp.NewToolResultError("post_id is required"), nil
 	}
 
-	thread, err := s.api.PostThread(ctx, postID)
+	limit := optionalInt(args, "limit", 200)
+	if limit <= 0 {
+		limit = 200
+	}
+
+	thread, err := s.api.PostThreadPaged(ctx, postID, limit)
 	if err != nil {
 		return mcp.NewToolResultError(friendlyErr("reading thread", err)), nil
 	}

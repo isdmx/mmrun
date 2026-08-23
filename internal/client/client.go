@@ -47,6 +47,7 @@ type API interface {
 	PostsSince(ctx context.Context, channelID string, since int64) (*model.PostList, error)
 	GetPost(ctx context.Context, postID string) (*model.Post, error)
 	PostThread(ctx context.Context, postID string) (*model.PostList, error)
+	PostThreadPaged(ctx context.Context, postID string, perPage int) (*model.PostList, error)
 	UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int) (*model.Threads, error)
 	UploadFile(ctx context.Context, data []byte, channelID, filename string) (*model.FileUploadResponse, error)
 	GetFile(ctx context.Context, fileID string) ([]byte, error)
@@ -259,6 +260,11 @@ func (c *Client) GetPost(ctx context.Context, postID string) (*model.Post, error
 
 func (c *Client) PostThread(ctx context.Context, postID string) (*model.PostList, error) {
 	pl, _, err := c.mm.GetPostThread(ctx, postID, "", false)
+	return pl, err
+}
+
+func (c *Client) PostThreadPaged(ctx context.Context, postID string, perPage int) (*model.PostList, error) {
+	pl, _, err := c.mm.GetPostThreadWithOpts(ctx, postID, "", model.GetPostsOptions{PerPage: perPage})
 	return pl, err
 }
 

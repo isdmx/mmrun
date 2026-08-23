@@ -55,6 +55,7 @@ type FakeAPI struct {
 	SearchCalls_   int
 
 	TeamsForUserCalls_ int
+	PostThreadPerPage_ int
 }
 
 var _ API = (*FakeAPI)(nil)
@@ -171,6 +172,11 @@ func (f *FakeAPI) GetPost(context.Context, string) (*model.Post, error) {
 }
 
 func (f *FakeAPI) PostThread(context.Context, string) (*model.PostList, error) {
+	return f.Thread_, f.Err
+}
+
+func (f *FakeAPI) PostThreadPaged(_ context.Context, _ string, perPage int) (*model.PostList, error) {
+	f.PostThreadPerPage_ = perPage
 	return f.Thread_, f.Err
 }
 
