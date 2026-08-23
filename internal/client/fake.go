@@ -54,8 +54,9 @@ type FakeAPI struct {
 	SearchTerms_   string
 	SearchCalls_   int
 
-	TeamsForUserCalls_ int
-	PostThreadPerPage_ int
+	TeamsForUserCalls_      int
+	PostThreadPerPage_      int
+	PostsForChannelPerPage_ int
 }
 
 var _ API = (*FakeAPI)(nil)
@@ -159,7 +160,8 @@ func (f *FakeAPI) FlagPost(_ context.Context, id string) error { f.PostFlagged_ 
 
 func (f *FakeAPI) UnflagPost(_ context.Context, _ string) error { f.PostFlagged_ = ""; return f.Err }
 func (f *FakeAPI) Bots(context.Context) ([]*model.Bot, error)   { return f.Bots_, f.Err }
-func (f *FakeAPI) PostsForChannel(context.Context, string, int) (*model.PostList, error) {
+func (f *FakeAPI) PostsForChannel(_ context.Context, _ string, perPage int) (*model.PostList, error) {
+	f.PostsForChannelPerPage_ = perPage
 	return f.Posts_, f.Err
 }
 

@@ -181,17 +181,26 @@ func (s *Server) readChannel(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	var posts *model.PostList
-	if since > 0 {
-		posts, err = s.api.PostsSince(ctx, ch.Id, since)
-	} else {
-		posts, err = s.api.PostsForChannel(ctx, ch.Id, 60)
+	limit := optionalInt(args, "limit", 60)
+	if limit <= 0 {
+		limit = 60
 	}
+
+	posts, err := s.api.PostsForChannel(ctx, ch.Id, limit)
 	if err != nil {
 		return mcp.NewToolResultError(friendlyErr("reading channel", err)), nil
 	}
 
 	sorted := client.SortPosts(posts)
+	if since > 0 {
+		filtered := sorted[:0]
+		for _, p := range sorted {
+			if p.CreateAt >= since {
+				filtered = append(filtered, p)
+			}
+		}
+		sorted = filtered
+	}
 	rows := make([]output.Row, 0, len(sorted))
 	for _, p := range sorted {
 		rows = append(rows, messageRow(p, ch.DisplayName, s.serverURL))

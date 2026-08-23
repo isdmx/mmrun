@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mattermost/mattermost/server/public/model"
@@ -217,6 +218,32 @@ func TestGetThread_CapsLimit(t *testing.T) {
 	}
 	if f.PostThreadPerPage_ != 50 {
 		t.Errorf("expected perPage 50, got %d", f.PostThreadPerPage_)
+	}
+}
+
+func TestReadChannel_SinceFilterAndLimit(t *testing.T) {
+	s := setupTestServer(t, TierRead)
+	now := time.Now().UnixMilli()
+	pl := &model.PostList{Order: []string{"p1", "p2"}, Posts: map[string]*model.Post{
+		"p1": {Id: "p1", Message: "old", UserId: "u2", CreateAt: now - 3600000, ChannelId: "c1"},
+		"p2": {Id: "p2", Message: "new", UserId: "u3", CreateAt: now - 1000, ChannelId: "c1"},
+	}}
+	f := &client.FakeAPI{
+		Resolved_: &model.Channel{Id: "c1", Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen},
+		Posts_:    pl,
+	}
+	s.api = f
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"channel": "general", "since": "5s", "limit": 100}}}
+	result, _ := s.readChannel(context.Background(), req)
+	text := result.Content[0].(mcp.TextContent).Text
+	if !strings.Contains(text, "new") {
+		t.Errorf("expected 'new' in output: %s", text)
+	}
+	if strings.Contains(text, "old") {
+		t.Errorf("did not expect 'old' (filtered by since): %s", text)
+	}
+	if f.PostsForChannelPerPage_ != 100 {
+		t.Errorf("expected perPage 100, got %d", f.PostsForChannelPerPage_)
 	}
 }
 
