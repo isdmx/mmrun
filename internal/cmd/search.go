@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -56,8 +57,8 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().StringVar(&timeFormat, "time-format", "", "timestamp format: rfc3339|relative")
 	cmd.Flags().IntVar(&limit, "limit", 0, "max results (default 60)")
 	cmd.Flags().IntVar(&page, "page", 0, "page number (0-based)")
-	cmd.Flags().StringVar(&sinceFlag, "since", "", "only posts after this time (duration like 24h or RFC3339)")
-	cmd.Flags().StringVar(&beforeFlag, "before", "", "only posts before this time (RFC3339)")
+	cmd.Flags().StringVar(&sinceFlag, "since", "", "only posts after this time (duration like 24h, RFC3339, or date like 2026-07-01)")
+	cmd.Flags().StringVar(&beforeFlag, "before", "", "only posts before this date (date like 2026-07-01)")
 	cmd.Flags().BoolVar(&noMarkdown, "no-markdown", false, "disable markdown rendering")
 	cmd.Flags().BoolVar(&links, "links", false, "extract and list URLs from message bodies")
 	cmd.Flags().StringVar(&fromUser, "from", "", "filter posts by this user")
@@ -70,7 +71,10 @@ func newSearchCmd(outputMode *string) *cobra.Command {
 
 func runSearch(app *appContext, query, teamName string, full bool, columns, format, style, timeFormat string, limit, page int, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter string, links bool, markdown, quiet bool, w io.Writer) error {
 	ctx := context.Background()
-	query = appendSearchModifiers(ctx, app, query, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter)
+	query, err := appendSearchModifiers(ctx, app, query, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter)
+	if err != nil {
+		return err
+	}
 	spec := columns
 	if spec == "" {
 		spec = app.columnsDefault
@@ -101,16 +105,22 @@ func runSearch(app *appContext, query, teamName string, full bool, columns, form
 	return app.renderOpts(w, res, format, style, timeFormat, markdown)
 }
 
-func appendSearchModifiers(ctx context.Context, app *appContext, query, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter string) string {
+func appendSearchModifiers(ctx context.Context, app *appContext, query, sinceFlag, beforeFlag, fromUser, inChannel, typeFilter string) (string, error) {
 	if sinceFlag != "" {
-		if t, err := parseSince(sinceFlag); err == nil {
-			query += " after:" + time.UnixMilli(t).UTC().Format("2006-01-02")
+		t, err := parseSince(sinceFlag)
+		if err != nil {
+			return "", err
 		}
+		// Mattermost's after: modifier is exclusive of the given day, so back
+		// up one day to make --since inclusive ("on or after").
+		query += " after:" + time.UnixMilli(t).UTC().AddDate(0, 0, -1).Format("2006-01-02")
 	}
 	if beforeFlag != "" {
-		if t, err := time.Parse("2006-01-02", beforeFlag); err == nil {
-			query += " before:" + t.Format("2006-01-02")
+		t, err := time.Parse("2006-01-02", beforeFlag)
+		if err != nil {
+			return "", fmt.Errorf("invalid --before %q: use a date like 2026-07-01", beforeFlag)
 		}
+		query += " before:" + t.Format("2006-01-02")
 	}
 	if fromUser != "" {
 		query += " from:" + strings.TrimPrefix(fromUser, "@")
@@ -127,7 +137,7 @@ func appendSearchModifiers(ctx context.Context, app *appContext, query, sinceFla
 	case "private":
 		query += " in:private"
 	}
-	return query
+	return query, nil
 }
 
 func searchAllTeams(ctx context.Context, app *appContext, query string, full bool, spec, format, style, timeFormat string, limit, page int, links bool, markdown, quiet bool, w io.Writer) error {

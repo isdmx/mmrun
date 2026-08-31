@@ -61,7 +61,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 		},
 	}
 	cmd.Flags().IntVar(&opts.limit, "limit", 0, "number of messages to fetch (default from config or 50)")
-	cmd.Flags().StringVar(&opts.since, "since", "", "only messages since this time: a duration (e.g. 24h) or RFC3339 timestamp")
+	cmd.Flags().StringVar(&opts.since, "since", "", "only messages since this time: a duration (e.g. 24h), RFC3339 timestamp, or date (e.g. 2026-07-01)")
 	cmd.Flags().StringVar(&opts.thread, "thread", "", "fetch the thread rooted at this post ID instead of the channel")
 	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full message text instead of a single-line preview")
@@ -116,7 +116,8 @@ func runReadStdin(outputMode *string, opts readOpts, cmd *cobra.Command, quiet b
 }
 
 // parseSince interprets a --since value as either a Go duration relative to now
-// (e.g. "24h") or an absolute RFC3339 timestamp, returning Unix milliseconds.
+// (e.g. "24h"), an absolute RFC3339 timestamp, or a bare date (e.g. "2026-07-01"),
+// returning Unix milliseconds.
 func parseSince(v string) (int64, error) {
 	if d, err := time.ParseDuration(v); err == nil {
 		return time.Now().Add(-d).UnixMilli(), nil
@@ -124,7 +125,10 @@ func parseSince(v string) (int64, error) {
 	if t, err := time.Parse(time.RFC3339, v); err == nil {
 		return t.UnixMilli(), nil
 	}
-	return 0, fmt.Errorf("invalid --since %q: use a duration like 24h or an RFC3339 timestamp", v)
+	if t, err := time.Parse("2006-01-02", v); err == nil {
+		return t.UnixMilli(), nil
+	}
+	return 0, fmt.Errorf("invalid --since %q: use a duration like 24h, an RFC3339 timestamp, or a date like 2026-07-01", v)
 }
 
 func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) error {

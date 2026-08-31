@@ -26,6 +26,27 @@ func TestSearch_SinceModifier(t *testing.T) {
 	if err := runSearch(app, "test", "eng", false, "", "", "", "", 0, 0, "2026-07-01", "", "", "", "", false, true, false, &buf); err != nil {
 		t.Fatalf("runSearch with since: %v", err)
 	}
+	if !strings.Contains(fake.SearchTerms_, "after:2026-06-30") {
+		t.Errorf("since 2026-07-01 should be inclusive -> after:2026-06-30, got %q", fake.SearchTerms_)
+	}
+}
+
+func TestSearch_InvalidSince(t *testing.T) {
+	fake := &client.FakeAPI{Posts_: &model.PostList{}, Teams_: []*model.Team{{Id: "t1", Name: "eng"}}}
+	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runSearch(app, "test", "eng", false, "", "", "", "", 0, 0, "not-a-time", "", "", "", "", false, true, false, &buf); err == nil {
+		t.Fatal("expected error for invalid --since, got nil")
+	}
+}
+
+func TestSearch_InvalidBefore(t *testing.T) {
+	fake := &client.FakeAPI{Posts_: &model.PostList{}, Teams_: []*model.Team{{Id: "t1", Name: "eng"}}}
+	app := &appContext{api: fake, outputMode: "ai", userID: "u1", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runSearch(app, "test", "eng", false, "", "", "", "", 0, 0, "", "not-a-date", "", "", "", false, true, false, &buf); err == nil {
+		t.Fatal("expected error for invalid --before, got nil")
+	}
 }
 
 func TestSearch_RendersHits(t *testing.T) {

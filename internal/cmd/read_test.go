@@ -59,6 +59,9 @@ func TestParseSince(t *testing.T) {
 	if _, err := parseSince("2026-01-02T15:04:05Z"); err != nil {
 		t.Errorf("parseSince RFC3339: %v", err)
 	}
+	if _, err := parseSince("2026-01-02"); err != nil {
+		t.Errorf("parseSince date: %v", err)
+	}
 	if _, err := parseSince("not-a-time"); err == nil {
 		t.Error("expected error for garbage input")
 	}
