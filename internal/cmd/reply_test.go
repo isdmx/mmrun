@@ -28,3 +28,23 @@ func TestReply(t *testing.T) {
 		t.Errorf("reply should be in same channel c1: %+v", fake.LastPost_)
 	}
 }
+
+func TestReplyToNestedPost(t *testing.T) {
+	fake := &client.FakeAPI{
+		Thread_: &model.PostList{
+			Posts: map[string]*model.Post{"p2": {Id: "p2", ChannelId: "c1", RootId: "p1"}},
+		},
+		Created_: &model.Post{Id: "r2"},
+	}
+	app := &appContext{api: fake, outputMode: "ai", userID: "u1"}
+	var buf bytes.Buffer
+	if err := runReply(app, "p2", "my reply", postOpts{}, &buf); err != nil {
+		t.Fatalf("reply: %v", err)
+	}
+	if fake.LastPost_ == nil || fake.LastPost_.RootId != "p1" {
+		t.Errorf("reply to a nested post should be threaded under root p1: %+v", fake.LastPost_)
+	}
+	if fake.LastPost_ == nil || fake.LastPost_.ChannelId != "c1" {
+		t.Errorf("reply should be in same channel c1: %+v", fake.LastPost_)
+	}
+}

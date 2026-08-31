@@ -79,8 +79,8 @@ func runReply(app *appContext, postID, message string, opts postOpts, w io.Write
 	if err != nil {
 		return fmt.Errorf("resolve post %q: %w", postID, err)
 	}
-	root, ok := pl.Posts[postID]
-	if !ok || root == nil {
+	target, ok := pl.Posts[postID]
+	if !ok || target == nil {
 		return fmt.Errorf("post %q not found", postID)
 	}
 
@@ -98,7 +98,7 @@ func runReply(app *appContext, postID, message string, opts postOpts, w io.Write
 			Title:   "Dry run (not sent)",
 			Columns: []string{"field", "value"},
 			Rows: []output.Row{
-				{"field": "channel", "value": root.ChannelId},
+				{"field": "channel", "value": target.ChannelId},
 				{"field": "reply_to", "value": postID},
 				{"field": "files", "value": strings.Join(opts.files, ", ")},
 				{"field": "message", "value": msg},
@@ -107,14 +107,18 @@ func runReply(app *appContext, postID, message string, opts postOpts, w io.Write
 		return app.render(w, res)
 	}
 
-	fileIDs, err := uploadFiles(ctx, app, root.ChannelId, opts.files)
+	fileIDs, err := uploadFiles(ctx, app, target.ChannelId, opts.files)
 	if err != nil {
 		return err
 	}
+	rootID := target.RootId
+	if rootID == "" {
+		rootID = postID
+	}
 	created, err := app.api.CreatePost(ctx, &model.Post{
-		ChannelId: root.ChannelId,
+		ChannelId: target.ChannelId,
 		Message:   msg,
-		RootId:    postID,
+		RootId:    rootID,
 		FileIds:   fileIDs,
 	})
 	if err != nil {
