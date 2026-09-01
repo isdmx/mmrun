@@ -292,6 +292,33 @@ func (a *appContext) resolveTeam(ctx context.Context, name string) (id, resolved
 	return "", "", fmt.Errorf("team %q not found among your memberships", name)
 }
 
+// teamRef is a resolved team ID/name pair.
+type teamRef struct {
+	id   string
+	name string
+}
+
+// resolveTeams returns the teams to operate over: the single named team when
+// name is non-empty, or every team the user belongs to when name is empty.
+func (a *appContext) resolveTeams(ctx context.Context, name string) ([]teamRef, error) {
+	if name != "" {
+		id, resolvedName, err := a.resolveTeam(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		return []teamRef{{id: id, name: resolvedName}}, nil
+	}
+	teams, err := a.api.TeamsForUser(ctx, a.userID)
+	if err != nil {
+		return nil, err
+	}
+	refs := make([]teamRef, 0, len(teams))
+	for _, t := range teams {
+		refs = append(refs, teamRef{id: t.Id, name: t.Name})
+	}
+	return refs, nil
+}
+
 // isStdinPipe reports whether stdin is connected to a pipe (not a TTY).
 func isStdinPipe() bool {
 	return !term.IsTerminal(int(os.Stdin.Fd()))

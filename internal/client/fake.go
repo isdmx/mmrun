@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/mattermost/mattermost/server/public/model"
 )
@@ -19,6 +20,7 @@ type FakeAPI struct {
 	Post_       *model.Post
 	Thread_     *model.PostList
 	Threads_    *model.Threads
+	Members_    model.ChannelMembers
 	Created_    *model.Post
 	LastPost_   *model.Post
 	Resolved_   *model.Channel
@@ -32,6 +34,8 @@ type FakeAPI struct {
 
 	ViewedChannel_ string
 	ReadThread_    string
+	Followed_      string
+	Unfollowed_    string
 	Reacted_       string
 	Unreacted_     string
 	Reactions_     []*model.Reaction
@@ -55,9 +59,14 @@ type FakeAPI struct {
 	SearchCalls_   int
 
 	TeamsForUserCalls_      int
+	ChannelsForUserCalls_   int
+	UserThreadsCalls_       int
+	PostThreadCalls_        int32
 	PostThreadPerPage_      int
 	PostsForChannelPerPage_ int
 	UsersByIDsArgs_         []string
+	UserThreadsSince        int64
+	ChannelMembersChannel   string
 }
 
 var _ API = (*FakeAPI)(nil)
@@ -110,6 +119,7 @@ func (f *FakeAPI) Team(context.Context, string) (*model.Team, error) {
 }
 
 func (f *FakeAPI) ChannelsForUser(context.Context, string, string) ([]*model.Channel, error) {
+	f.ChannelsForUserCalls_++
 	return f.Channels_, f.Err
 }
 
@@ -118,6 +128,11 @@ func (f *FakeAPI) Channel(_ context.Context, id string) (*model.Channel, error) 
 		return f.Resolved_, f.Err
 	}
 	return nil, f.Err
+}
+
+func (f *FakeAPI) ChannelMembers(_ context.Context, channelID string, _, _ int) (model.ChannelMembers, error) {
+	f.ChannelMembersChannel = channelID
+	return f.Members_, f.Err
 }
 
 func (f *FakeAPI) SearchChannels(context.Context, string, string) ([]*model.Channel, error) {
@@ -175,7 +190,8 @@ func (f *FakeAPI) GetPost(context.Context, string) (*model.Post, error) {
 	return f.Post_, f.Err
 }
 
-func (f *FakeAPI) PostThread(context.Context, string) (*model.PostList, error) {
+func (f *FakeAPI) PostThread(_ context.Context, _ string) (*model.PostList, error) {
+	atomic.AddInt32(&f.PostThreadCalls_, 1)
 	return f.Thread_, f.Err
 }
 
@@ -184,7 +200,9 @@ func (f *FakeAPI) PostThreadPaged(_ context.Context, _ string, perPage int) (*mo
 	return f.Thread_, f.Err
 }
 
-func (f *FakeAPI) UserThreads(context.Context, string, string, bool, int) (*model.Threads, error) {
+func (f *FakeAPI) UserThreads(_ context.Context, _, _ string, _ bool, _ int, since int64) (*model.Threads, error) {
+	f.UserThreadsCalls_++
+	f.UserThreadsSince = since
 	return f.Threads_, f.Err
 }
 
@@ -207,6 +225,16 @@ func (f *FakeAPI) ViewChannel(_ context.Context, _, channelID string) error {
 
 func (f *FakeAPI) UpdateThreadRead(_ context.Context, _, _, threadID string) error {
 	f.ReadThread_ = threadID
+	return f.Err
+}
+
+func (f *FakeAPI) FollowThread(_ context.Context, _, _, threadID string) error {
+	f.Followed_ = threadID
+	return f.Err
+}
+
+func (f *FakeAPI) UnfollowThread(_ context.Context, _, _, threadID string) error {
+	f.Unfollowed_ = threadID
 	return f.Err
 }
 

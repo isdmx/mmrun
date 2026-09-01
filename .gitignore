@@ -11,3 +11,5 @@ coverage.out
 /demo/
 
 /.worktrees/
+/.omo
+/opencode.json

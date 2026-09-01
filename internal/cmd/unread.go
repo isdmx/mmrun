@@ -31,27 +31,37 @@ func newUnreadCmd(outputMode *string) *cobra.Command {
 
 func runUnread(app *appContext, teamName string, w io.Writer) error {
 	ctx := context.Background()
-	teamID, _, err := app.resolveTeam(ctx, teamName)
-	if err != nil {
-		return err
-	}
-	channels, err := app.api.ChannelsForUser(ctx, teamID, app.userID)
+	teams, err := app.resolveTeams(ctx, teamName)
 	if err != nil {
 		return err
 	}
 	res := output.Result{Title: "Unread", Columns: []string{"channel", "mentions", "messages"}}
-	for _, c := range channels {
-		u, uerr := app.api.ChannelUnread(ctx, c.Id, app.userID)
-		if uerr == nil && u != nil && u.MsgCount > 0 {
-			label := c.DisplayName
-			if label == "" {
-				label = c.Name
+	seen := map[string]bool{}
+	for _, t := range teams {
+		channels, cerr := app.api.ChannelsForUser(ctx, t.id, app.userID)
+		if cerr != nil {
+			if teamName != "" {
+				return cerr
 			}
-			res.Rows = append(res.Rows, output.Row{
-				"channel":  label,
-				"mentions": strconv.FormatInt(u.MentionCount, 10),
-				"messages": strconv.FormatInt(u.MsgCount, 10),
-			})
+			continue
+		}
+		for _, c := range channels {
+			if seen[c.Id] {
+				continue
+			}
+			seen[c.Id] = true
+			u, uerr := app.api.ChannelUnread(ctx, c.Id, app.userID)
+			if uerr == nil && u != nil && u.MsgCount > 0 {
+				label := c.DisplayName
+				if label == "" {
+					label = c.Name
+				}
+				res.Rows = append(res.Rows, output.Row{
+					"channel":  label,
+					"mentions": strconv.FormatInt(u.MentionCount, 10),
+					"messages": strconv.FormatInt(u.MsgCount, 10),
+				})
+			}
 		}
 	}
 	return app.render(w, res)

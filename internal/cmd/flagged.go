@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 
+	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/spf13/cobra"
 
 	"github.com/isdmx/mmrun/internal/output"
@@ -51,11 +53,7 @@ func newFlaggedCmd(outputMode *string) *cobra.Command {
 
 func runFlagged(app *appContext, teamName string, limit int, columns string, full bool, style, timeFormat, format string, markdown, quiet bool, w io.Writer) error {
 	ctx := context.Background()
-	teamID, resolvedTeam, err := app.resolveTeam(ctx, teamName)
-	if err != nil {
-		return err
-	}
-	pl, err := app.api.FlaggedPosts(ctx, app.userID, teamID, 0, limit)
+	teams, err := app.resolveTeams(ctx, teamName)
 	if err != nil {
 		return err
 	}
@@ -67,7 +65,33 @@ func runFlagged(app *appContext, teamName string, limit int, columns string, ful
 	if err != nil {
 		return err
 	}
-	res := renderMessages(ctx, app, "Flagged", postsInOrder(pl), resolvedTeam, full, cols, false, style)
+	var allPosts []*model.Post
+	seen := map[string]bool{}
+	permalinkTeam := ""
+	for _, t := range teams {
+		pl, ferr := app.api.FlaggedPosts(ctx, app.userID, t.id, 0, limit)
+		if ferr != nil {
+			if teamName != "" {
+				return ferr
+			}
+			continue
+		}
+		for _, p := range postsInOrder(pl) {
+			if p == nil || seen[p.Id] {
+				continue
+			}
+			seen[p.Id] = true
+			allPosts = append(allPosts, p)
+		}
+		if permalinkTeam == "" {
+			permalinkTeam = t.name
+		}
+	}
+	sort.SliceStable(allPosts, func(i, j int) bool { return allPosts[i].CreateAt > allPosts[j].CreateAt })
+	if limit > 0 && len(allPosts) > limit {
+		allPosts = allPosts[:limit]
+	}
+	res := renderMessages(ctx, app, "Flagged", allPosts, permalinkTeam, full, cols, false, style)
 	if quiet {
 		return output.NewWithOptions(app.outputMode, stdoutFile(w), output.Options{Quiet: true, QuietColumn: "post_id"}).Render(w, res)
 	}

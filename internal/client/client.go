@@ -32,6 +32,7 @@ type API interface {
 	Team(ctx context.Context, teamID string) (*model.Team, error)
 	ChannelsForUser(ctx context.Context, teamID, userID string) ([]*model.Channel, error)
 	Channel(ctx context.Context, channelID string) (*model.Channel, error)
+	ChannelMembers(ctx context.Context, channelID string, page, perPage int) (model.ChannelMembers, error)
 	SearchChannels(ctx context.Context, teamID, term string) ([]*model.Channel, error)
 	CreateDirectChannel(ctx context.Context, userID1, userID2 string) (*model.Channel, error)
 	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
@@ -48,13 +49,15 @@ type API interface {
 	GetPost(ctx context.Context, postID string) (*model.Post, error)
 	PostThread(ctx context.Context, postID string) (*model.PostList, error)
 	PostThreadPaged(ctx context.Context, postID string, perPage int) (*model.PostList, error)
-	UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int) (*model.Threads, error)
+	UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int, since int64) (*model.Threads, error)
 	UploadFile(ctx context.Context, data []byte, channelID, filename string) (*model.FileUploadResponse, error)
 	GetFile(ctx context.Context, fileID string) ([]byte, error)
 	FileInfo(ctx context.Context, fileID string) (*model.FileInfo, error)
 	FileInfosForPost(ctx context.Context, postID string) ([]*model.FileInfo, error)
 	ViewChannel(ctx context.Context, userID, channelID string) error
 	UpdateThreadRead(ctx context.Context, userID, teamID, threadID string) error
+	FollowThread(ctx context.Context, userID, teamID, threadID string) error
+	UnfollowThread(ctx context.Context, userID, teamID, threadID string) error
 	SaveReaction(ctx context.Context, postID, userID, emojiName string) error
 	DeleteReaction(ctx context.Context, postID, userID, emojiName string) error
 	ReactionsForPost(ctx context.Context, postID string) ([]*model.Reaction, error)
@@ -181,6 +184,11 @@ func (c *Client) Channel(ctx context.Context, channelID string) (*model.Channel,
 	return ch, err
 }
 
+func (c *Client) ChannelMembers(ctx context.Context, channelID string, page, perPage int) (model.ChannelMembers, error) {
+	members, _, err := c.mm.GetChannelMembers(ctx, channelID, page, perPage, "")
+	return members, err
+}
+
 func (c *Client) SearchChannels(ctx context.Context, teamID, term string) ([]*model.Channel, error) {
 	ch, _, err := c.mm.SearchChannels(ctx, teamID, &model.ChannelSearch{Term: term})
 	return ch, err
@@ -270,10 +278,13 @@ func (c *Client) PostThreadPaged(ctx context.Context, postID string, perPage int
 
 // UserThreads returns the threads the user follows in a team, most recently
 // updated first.
-func (c *Client) UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int) (*model.Threads, error) {
+func (c *Client) UserThreads(ctx context.Context, userID, teamID string, unread bool, pageSize int, since int64) (*model.Threads, error) {
 	opts := model.GetUserThreadsOpts{Unread: unread}
 	if pageSize > 0 {
 		opts.PageSize = uint64(pageSize)
+	}
+	if since > 0 {
+		opts.Since = uint64(since)
 	}
 	th, _, err := c.mm.GetUserThreads(ctx, userID, teamID, opts)
 	return th, err
@@ -309,6 +320,16 @@ func (c *Client) ViewChannel(ctx context.Context, userID, channelID string) erro
 
 func (c *Client) UpdateThreadRead(ctx context.Context, userID, teamID, threadID string) error {
 	_, _, err := c.mm.UpdateThreadReadForUser(ctx, userID, teamID, threadID, time.Now().UnixMilli())
+	return err
+}
+
+func (c *Client) FollowThread(ctx context.Context, userID, teamID, threadID string) error {
+	_, err := c.mm.UpdateThreadFollowForUser(ctx, userID, teamID, threadID, true)
+	return err
+}
+
+func (c *Client) UnfollowThread(ctx context.Context, userID, teamID, threadID string) error {
+	_, err := c.mm.UpdateThreadFollowForUser(ctx, userID, teamID, threadID, false)
 	return err
 }
 

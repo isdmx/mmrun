@@ -110,6 +110,35 @@ func TestChannelLabel_SelfDM(t *testing.T) {
 	}
 }
 
+func TestChannelLabel_GroupMessage(t *testing.T) {
+	app := &appContext{
+		api: &client.FakeAPI{
+			Resolved_: &model.Channel{Id: "g1", Name: "hash", Type: model.ChannelTypeGroup},
+			Members_:  model.ChannelMembers{{ChannelId: "g1", UserId: "u1"}, {ChannelId: "g1", UserId: "u3"}, {ChannelId: "g1", UserId: "u2"}},
+			Users_:    []*model.User{{Id: "u2", Username: "bob"}, {Id: "u3", Username: "carol"}},
+		},
+		userID: "u1",
+	}
+	got := channelLabel(context.Background(), app, "g1", map[string]string{})
+	if got != "@bob, @carol" {
+		t.Errorf("group label = %q, want %q", got, "@bob, @carol")
+	}
+}
+
+func TestChannelLabel_SelfOnlyGroup(t *testing.T) {
+	app := &appContext{
+		api: &client.FakeAPI{
+			Resolved_: &model.Channel{Id: "g1", Name: "hash", Type: model.ChannelTypeGroup},
+			Members_:  model.ChannelMembers{{ChannelId: "g1", UserId: "u1"}},
+		},
+		userID: "u1",
+	}
+	got := channelLabel(context.Background(), app, "g1", map[string]string{})
+	if got != "you" {
+		t.Errorf("self-only GM label = %q, want you", got)
+	}
+}
+
 func TestStatusDots(t *testing.T) {
 	fake := &client.FakeAPI{Statuses_: []*model.Status{
 		{UserId: "u2", Status: "online"},

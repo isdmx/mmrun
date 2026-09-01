@@ -60,6 +60,12 @@ func (h humanRenderer) Render(w io.Writer, r Result) error {
 		return err
 	}
 	for _, row := range r.Rows {
+		if row["_type"] == "thread_header" {
+			if err := h.writeThreadHeader(tw, row["message"]); err != nil {
+				return err
+			}
+			continue
+		}
 		rowType := row["_type"]
 		var prefix, suffix string
 		if rowType == "bot" && h.theme.BotStyle != "" {
@@ -83,6 +89,17 @@ func (h humanRenderer) Render(w io.Writer, r Result) error {
 		}
 	}
 	return tw.Flush()
+}
+
+func (h humanRenderer) writeThreadHeader(tw *tabwriter.Writer, text string) error {
+	if _, err := fmt.Fprintln(tw); err != nil {
+		return err
+	}
+	if h.color {
+		text = ansiBold + text + ansiReset
+	}
+	_, err := fmt.Fprintf(tw, "▸ %s\n", text)
+	return err
 }
 
 func (h humanRenderer) styleCell(col, val string) string {

@@ -16,7 +16,14 @@ func (jsonRenderer) Render(w io.Writer, r Result) error {
 		payload["title"] = r.Title
 	}
 	if r.Rows != nil {
-		payload["rows"] = r.Rows
+		rows := make([]Row, 0, len(r.Rows))
+		for _, row := range r.Rows {
+			if row["_type"] == "thread_header" {
+				continue
+			}
+			rows = append(rows, row)
+		}
+		payload["rows"] = rows
 	}
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")

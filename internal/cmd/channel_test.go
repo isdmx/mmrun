@@ -103,3 +103,43 @@ func TestChannelList_BotLabel(t *testing.T) {
 		t.Errorf("bot DM should be labeled with 🤖@botuser:\n%s", buf.String())
 	}
 }
+
+func TestChannelList_GroupLabel(t *testing.T) {
+	gm := &model.Channel{Id: "g1", Name: "hash", Type: model.ChannelTypeGroup}
+	pub := &model.Channel{Id: "c1", Name: "general", Type: model.ChannelTypeOpen}
+	app := &appContext{
+		api: &client.FakeAPI{
+			Teams_:    []*model.Team{{Id: "t1", Name: "eng"}},
+			Channels_: []*model.Channel{pub, gm},
+			Members_:  model.ChannelMembers{{ChannelId: "g1", UserId: "u1"}, {ChannelId: "g1", UserId: "u3"}, {ChannelId: "g1", UserId: "u2"}},
+			Users_:    []*model.User{{Id: "u2", Username: "bob"}, {Id: "u3", Username: "carol"}},
+		},
+		outputMode: "ai",
+		userID:     "u1",
+	}
+	var buf bytes.Buffer
+	if err := runChannelList(app, "eng", "group", &buf); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "@bob, @carol") {
+		t.Errorf("group channel should be labeled with participants:\n%s", buf.String())
+	}
+	if strings.Contains(buf.String(), "hash") {
+		t.Errorf("raw group name should be replaced:\n%s", buf.String())
+	}
+}
+
+func TestChannelList_MultiTeamNoError(t *testing.T) {
+	fake := &client.FakeAPI{
+		Teams_:    []*model.Team{{Id: "t1", Name: "sberdevices"}, {Id: "t2", Name: "gi"}},
+		Channels_: []*model.Channel{{Id: "c1", Name: "general", DisplayName: "General", Type: model.ChannelTypeOpen}},
+	}
+	app := &appContext{api: fake, outputMode: "ai", userID: "u1"}
+	var buf bytes.Buffer
+	if err := runChannelList(app, "", "default", &buf); err != nil {
+		t.Fatalf("multi-team channel list should not error: %v", err)
+	}
+	if fake.ChannelsForUserCalls_ != 2 {
+		t.Errorf("ChannelsForUser calls = %d, want 2 (one per team)", fake.ChannelsForUserCalls_)
+	}
+}

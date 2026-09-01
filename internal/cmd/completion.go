@@ -213,7 +213,7 @@ func completePostIDCompletions(app *appContext) []string {
 	if data, ok := completionCache.get(cacheKey); ok {
 		return data
 	}
-	threads, err := app.api.UserThreads(ctx, app.userID, teamID, false, 50)
+	threads, err := app.api.UserThreads(ctx, app.userID, teamID, false, 50, 0)
 	if err != nil || threads == nil {
 		return nil
 	}

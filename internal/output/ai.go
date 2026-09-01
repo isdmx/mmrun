@@ -19,6 +19,9 @@ func (aiRenderer) Render(w io.Writer, r Result) error {
 		}
 	}
 	for _, row := range r.Rows {
+		if row["_type"] == "thread_header" {
+			continue
+		}
 		parts := make([]string, 0, len(r.Columns))
 		for _, c := range r.Columns {
 			parts = append(parts, fmt.Sprintf("%s=%s", c, row[c]))

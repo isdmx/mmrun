@@ -121,9 +121,12 @@ func channelLabel(ctx context.Context, app *appContext, id string, cache map[str
 	}
 	label := id
 	if ch, err := app.api.Channel(ctx, id); err == nil && ch != nil {
-		if ch.Type == model.ChannelTypeDirect {
+		switch ch.Type {
+		case model.ChannelTypeDirect:
 			label = directLabel(ctx, app, ch)
-		} else {
+		case model.ChannelTypeGroup:
+			label = groupLabel(ctx, app, ch)
+		default:
 			switch {
 			case ch.DisplayName != "":
 				label = ch.DisplayName
@@ -155,6 +158,45 @@ func directLabel(ctx context.Context, app *appContext, ch *model.Channel) string
 		}
 	}
 	return ch.Name
+}
+
+// groupLabel resolves a group-message channel to a comma-separated list of the
+// other participants' @usernames ("you" when the current user is the only
+// member). Members that fail to resolve are dropped; if none resolve, it falls
+// back to the channel name (the hash).
+func groupLabel(ctx context.Context, app *appContext, ch *model.Channel) string {
+	members, err := app.api.ChannelMembers(ctx, ch.Id, 0, 200)
+	if err != nil {
+		return ch.Name
+	}
+	ids := make([]string, 0, len(members))
+	for _, m := range members {
+		if m.UserId != app.userID {
+			ids = append(ids, m.UserId)
+		}
+	}
+	if len(ids) == 0 { // self-only GM
+		return "you"
+	}
+	sort.Strings(ids)
+	users, err := app.api.UsersByIDs(ctx, ids)
+	if err != nil {
+		return ch.Name
+	}
+	username := make(map[string]string, len(users))
+	for _, u := range users {
+		username[u.Id] = u.Username
+	}
+	parts := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if n := username[id]; n != "" {
+			parts = append(parts, "@"+n)
+		}
+	}
+	if len(parts) == 0 {
+		return ch.Name
+	}
+	return strings.Join(parts, ", ")
 }
 
 // preview collapses all runs of whitespace (including newlines and tabs) into
