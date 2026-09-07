@@ -14,7 +14,7 @@ post, tail, and search from your terminal — with human, AI-friendly, or JSON o
 - **Read & post** — channels and direct messages, threaded replies, file attachments.
 - **Live tail** — stream new messages over WebSocket (`Ctrl-C` to stop).
 - **Search** — server-side message search with Mattermost modifiers, plus channel and user search.
-- **Followed threads** — list the threads you follow with reply/unread counts.
+- **Followed threads** — list, read, and follow/unfollow threads; `--since` recency filter for daily triage.
 - **Actionable output** — results carry channel, author, `post_id`, thread root, and a clickable permalink.
 - **Three output modes** — colored human, plain AI-friendly, and JSON (auto-detected by TTY).
 
@@ -63,15 +63,18 @@ mmrun tail incidents
 | `auth status` | Show the current session (server, user, expiry) |
 | `me [--profile]` | Show your account, status, timezone, and custom status |
 | `team` / `team list` | List teams you belong to |
-| `channel` / `channel list` | List channels (`--type public\|private\|dm\|group\|all`) |
+| `channel` / `channel list` | List channels (`--type public\|private\|dm\|group\|all`; group DMs resolve to participant names) |
 | `channel search <term>` | Find channels by name, including ones you have not joined |
+| `dm` / `dm list --since 24h` | List recent direct/group messages (`--team`, `--limit`, `--full`, `--columns`) |
 | `user search <term>` | Find users by name/username |
 | `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--full`, `--columns`, `--mark-read, --style chat|tree|table, --time-format relative`) |
 | `post <channel> <msg>` | Post a message; use `-` to read from stdin (`--reply-to <id>`, repeatable `--file <path>`, `--dry-run`) |
 | `tail <channel>` | Stream new messages live (--mentions-only, --from <user>) |
 | `search <query>` | Server-side message search (`--team`, `--full`, `--columns`) |
-| `thread` / `thread list` | List followed threads (`--unread`, `--limit`, `--columns`) |
-| `thread read <id> --mark-read` | Read a thread, optionally mark it read |
+| `thread` / `thread list` | List followed threads (`--unread`, `--since 24h`, `--limit`, `--columns`) |
+| `thread read <id>` | Read a thread's full history (`--mark-read`, `--since 24h`) |
+| `thread read --since 24h` | Recent messages across your followed threads, grouped by thread (`--team`, `--limit`) |
+| `thread follow <post-id>` / `thread unfollow <post-id> --yes` | Follow / unfollow a thread (unfollow requires `--yes`) |
 | `react add <post-id> <emoji>` | Add a reaction |
 | `react remove <post-id> <emoji> --yes` | Remove your reaction (requires `--yes`) |
 | `pin add <post-id>` / `pin remove <post-id> --yes` | Pin or unpin a post |
@@ -94,6 +97,10 @@ mmrun tail incidents
 | `status [online|away|dnd|offline]` | Set your presence (`--emoji`, `--text`) |
 | `config` | View/edit configuration (`path`, `list`, `get`, `set`, `generate`) |
 | `version` / `--version` | Print version, commit, and build date |
+
+**Multi-team** — listing commands (`thread`, `channel`, `search`, `mentions`,
+`dm`, `unread`, `flagged`) span all your teams when `--team` is omitted; pass
+`--team <name>` to scope to one.
 
 **Color themes** — `config set theme dark|light|minimal` (or `--color auto|always|never`).
 Dark is the default. Themes drive username colors, timestamps, channel names,
