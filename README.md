@@ -67,7 +67,7 @@ mmrun tail incidents
 | `channel search <term>` | Find channels by name, including ones you have not joined |
 | `dm` / `dm list --since 24h` | List recent direct/group messages (`--team`, `--limit`, `--full`, `--columns`) |
 | `user search <term>` | Find users by name/username |
-| `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--full`, `--columns`, `--mark-read, --style chat|tree|table, --time-format relative`) |
+| `read <channel>` | Fetch messages (`--limit`, `--since 24h`, `--thread <id>`, `--post <id>`, `--full`, `--columns`, `--mark-read, --style chat|tree|table, --time-format relative`) |
 | `post <channel> <msg>` | Post a message; use `-` to read from stdin (`--reply-to <id>`, repeatable `--file <path>`, `--dry-run`) |
 | `tail <channel>` | Stream new messages live (--mentions-only, --from <user>) |
 | `search <query>` | Server-side message search (`--team`, `--full`, `--columns`) |
