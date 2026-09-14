@@ -138,7 +138,7 @@ func parseSince(v string) (int64, error) {
 	return 0, fmt.Errorf("invalid --since %q: use a duration like 24h, an RFC3339 timestamp, or a date like 2026-07-01", v)
 }
 
-func readSinglePost(ctx context.Context, app *appContext, postID string) (*model.PostList, string, error) {
+func readSinglePost(ctx context.Context, app *appContext, postID string) (pl *model.PostList, permalinkTeam string, err error) {
 	p, err := app.api.GetPost(ctx, postID)
 	if err != nil {
 		return nil, "", err
@@ -146,11 +146,10 @@ func readSinglePost(ctx context.Context, app *appContext, postID string) (*model
 	if p == nil {
 		return nil, "", fmt.Errorf("post %q not found", postID)
 	}
-	pl := &model.PostList{
+	pl = &model.PostList{
 		Order: []string{p.Id},
 		Posts: map[string]*model.Post{p.Id: p},
 	}
-	permalinkTeam := ""
 	if p.ChannelId != "" {
 		if pc, cerr := app.api.Channel(ctx, p.ChannelId); cerr == nil && pc != nil {
 			permalinkTeam = permalinkTeamFor(ctx, app, pc)
@@ -184,12 +183,10 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 
 	switch {
 	case opts.post != "":
-		var permalink string
-		pl, permalink, err = readSinglePost(ctx, app, opts.post)
+		pl, permalinkTeam, err = readSinglePost(ctx, app, opts.post)
 		if err != nil {
 			return err
 		}
-		permalinkTeam = permalink
 		title = "Post"
 	case opts.thread != "":
 		pl, err = app.api.PostThread(ctx, opts.thread)
