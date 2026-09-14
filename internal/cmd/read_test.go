@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
@@ -163,5 +164,47 @@ func TestRead_ThreadsOnly(t *testing.T) {
 	}
 	if !strings.Contains(out, "root") {
 		t.Error("threads-only should include root posts")
+	}
+}
+
+func TestRead_Post(t *testing.T) {
+	fake := &client.FakeAPI{
+		Post_:     &model.Post{Id: "p1", Message: "single post", UserId: "u2", ChannelId: "c1", CreateAt: 1000},
+		Resolved_: &model.Channel{Id: "c1", Name: "general", TeamId: "t1", Type: model.ChannelTypeOpen},
+		Teams_:    []*model.Team{{Id: "t1", Name: "eng"}},
+		Users_:    []*model.User{{Id: "u2", Username: "bob"}},
+	}
+	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runRead(app, "", readOpts{post: "p1"}, &buf); err != nil {
+		t.Fatalf("runRead post: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "single post") {
+		t.Errorf("missing post message:\n%s", out)
+	}
+	if !strings.Contains(out, "user=@bob") {
+		t.Errorf("missing author:\n%s", out)
+	}
+	if !strings.Contains(out, "permalink=https://mm.example.com/eng/pl/p1") {
+		t.Errorf("missing permalink:\n%s", out)
+	}
+}
+
+func TestRead_PostNotFound(t *testing.T) {
+	fake := &client.FakeAPI{Err: errors.New("post not found")}
+	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runRead(app, "", readOpts{post: "missing"}, &buf); err == nil {
+		t.Error("expected error for missing post")
+	}
+}
+
+func TestRead_PostNil(t *testing.T) {
+	fake := &client.FakeAPI{}
+	app := &appContext{api: fake, outputMode: "ai", previewLen: 140}
+	var buf bytes.Buffer
+	if err := runRead(app, "", readOpts{post: "missing"}, &buf); err == nil {
+		t.Error("expected error for nil post")
 	}
 }

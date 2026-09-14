@@ -19,6 +19,7 @@ type readOpts struct {
 	limit         int
 	since         string
 	thread        string
+	post          string
 	team          string
 	full          bool
 	columns       string
@@ -46,7 +47,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 			if len(args) == 0 && !noStdin && isStdinPipe() {
 				return runReadStdin(outputMode, opts, cmd, quiet)
 			}
-			if len(args) == 0 {
+			if len(args) == 0 && opts.post == "" && opts.thread == "" {
 				return fmt.Errorf("requires a channel argument or piped input")
 			}
 			app, err := requireSession(*outputMode)
@@ -57,12 +58,17 @@ func newReadCmd(outputMode *string) *cobra.Command {
 			if !cmd.Flags().Changed("full") {
 				opts.full = app.full
 			}
-			return runRead(app, args[0], opts, cmd.OutOrStdout())
+			channelRef := ""
+			if len(args) > 0 {
+				channelRef = args[0]
+			}
+			return runRead(app, channelRef, opts, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().IntVar(&opts.limit, "limit", 0, "number of messages to fetch (default from config or 50)")
 	cmd.Flags().StringVar(&opts.since, "since", "", "only messages since this time: a duration (e.g. 24h), RFC3339 timestamp, or date (e.g. 2026-07-01)")
 	cmd.Flags().StringVar(&opts.thread, "thread", "", "fetch the thread rooted at this post ID instead of the channel")
+	cmd.Flags().StringVar(&opts.post, "post", "", "fetch a single post by ID instead of a channel")
 	cmd.Flags().StringVar(&opts.team, "team", "", "team for resolving a bare channel name (defaults to your team if you have only one)")
 	cmd.Flags().BoolVar(&opts.full, "full", false, "show full message text instead of a single-line preview")
 	cmd.Flags().StringVar(&opts.columns, "columns", "", "columns to show (e.g. time,user,message or -permalink)")
@@ -77,6 +83,7 @@ func newReadCmd(outputMode *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.links, "links", false, "extract and list URLs from message bodies")
 	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "output only post IDs, one per line")
 	cmd.Flags().BoolVar(&noStdin, "no-stdin", false, "read channel ref from positional arg even when piped")
+	cmd.MarkFlagsMutuallyExclusive("post", "thread")
 	cmd.ValidArgsFunction = completeChannelArg
 	return cmd
 }
@@ -131,6 +138,27 @@ func parseSince(v string) (int64, error) {
 	return 0, fmt.Errorf("invalid --since %q: use a duration like 24h, an RFC3339 timestamp, or a date like 2026-07-01", v)
 }
 
+func readSinglePost(ctx context.Context, app *appContext, postID string) (*model.PostList, string, error) {
+	p, err := app.api.GetPost(ctx, postID)
+	if err != nil {
+		return nil, "", err
+	}
+	if p == nil {
+		return nil, "", fmt.Errorf("post %q not found", postID)
+	}
+	pl := &model.PostList{
+		Order: []string{p.Id},
+		Posts: map[string]*model.Post{p.Id: p},
+	}
+	permalinkTeam := ""
+	if p.ChannelId != "" {
+		if pc, cerr := app.api.Channel(ctx, p.ChannelId); cerr == nil && pc != nil {
+			permalinkTeam = permalinkTeamFor(ctx, app, pc)
+		}
+	}
+	return pl, permalinkTeam, nil
+}
+
 func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) error {
 	ctx := context.Background()
 
@@ -155,6 +183,14 @@ func runRead(app *appContext, channelRef string, opts readOpts, w io.Writer) err
 	var markCh *model.Channel
 
 	switch {
+	case opts.post != "":
+		var permalink string
+		pl, permalink, err = readSinglePost(ctx, app, opts.post)
+		if err != nil {
+			return err
+		}
+		permalinkTeam = permalink
+		title = "Post"
 	case opts.thread != "":
 		pl, err = app.api.PostThread(ctx, opts.thread)
 		title = "Thread"
